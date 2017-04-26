@@ -1,0 +1,40 @@
+group 'Keller'
+version = '0.0.1'
+apply plugin: 'base'
+
+String root = file('.').toString()
+
+allprojects {
+    apply plugin: 'eclipse'
+
+    repositories {
+        mavenCentral()
+        maven { url "http://mvnrepository.com/artifact" }
+    }
+
+    clean.doLast {
+        // Eclipse Dateien löschen
+        project.delete '.classpath', '.project', 'bin', fileTree(dir: ".settings", exclude: "gradle.prefs")
+    }
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            srcDir 'src/main/resources'
+        }
+    }
+    test {
+        java {
+            srcDir 'src/test/java'
+        }
+    }
+}
