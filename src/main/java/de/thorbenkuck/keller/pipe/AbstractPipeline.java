@@ -1,6 +1,6 @@
 package de.thorbenkuck.keller.pipe;
 
-import de.thorbenkuck.keller.datatypes.interfaces.Acceptor;
+import de.thorbenkuck.keller.datatypes.interfaces.PipelineHandler;
 import de.thorbenkuck.keller.datatypes.interfaces.Handler;
 
 import java.util.Collection;
@@ -10,7 +10,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 
-public abstract class AbstractPipeline<T, C extends Collection<Acceptor<T>>> implements Pipeline<T> {
+public abstract class AbstractPipeline<T, C extends Collection<PipelineHandler<T>>> implements Pipeline<T> {
 
 	protected final C core;
 	protected final Lock coreLock = new ReentrantLock(true);
@@ -21,8 +21,8 @@ public abstract class AbstractPipeline<T, C extends Collection<Acceptor<T>>> imp
 		this.core = c;
 	}
 
-	protected boolean acceptableToCore(Acceptor<T> acceptor) {
-		return mode == PipelineModes.OPEN || core.contains(acceptor);
+	protected boolean acceptableToCore(PipelineHandler<T> pipelineHandler) {
+		return mode == PipelineModes.OPEN || core.contains(pipelineHandler);
 	}
 
 	@Override
@@ -36,11 +36,11 @@ public abstract class AbstractPipeline<T, C extends Collection<Acceptor<T>>> imp
 	}
 
 	@Override
-	public void call(T element) {
+	public void handle(T element) {
 		synchronized (coreLock) {
 			try {
 				coreLock.lock();
-				core.forEach(acceptor -> acceptor.accept(element));
+				core.forEach(pipelineHandler -> pipelineHandler.handle(element));
 			} finally {
 				coreLock.unlock();
 			}

@@ -1,7 +1,6 @@
 import de.thorbenkuck.keller.cache.*;
 import org.junit.Test;
 
-import java.io.ObjectStreamClass;
 import java.util.Observable;
 import java.util.function.Predicate;
 

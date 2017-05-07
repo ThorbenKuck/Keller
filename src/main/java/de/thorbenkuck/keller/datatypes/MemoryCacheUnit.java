@@ -16,7 +16,7 @@ import java.util.Queue;
  *
  * @param <T> Der Objekt-Typ, welcher intern gespeichert werden soll.
  */
-public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializable {
+public class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializable {
 
 	protected volatile Queue<T> cache;
 	protected volatile Queue<T> memory;
@@ -41,7 +41,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * der Aufruf dieser Methode, löscht den Cache
 	 * </p>
 	 */
-	protected void emptyCache() {
+	protected final void emptyCache() {
 		this.cache = new LinkedList<>();
 	}
 
@@ -58,7 +58,11 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * der Aufruf dieser Methode, löscht den internen Speicher.
 	 * </p>
 	 */
-	protected void emptyMemory() {
+	protected final void emptyMemory() {
+		this.memory = new LinkedList<>();
+	}
+
+	protected final void resetMemory() {
 		this.memory = new LinkedList<>();
 	}
 
@@ -67,7 +71,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 *
 	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
 	 */
-	public MemoryCacheUnit resetCache() {
+	public final MemoryCacheUnit resetCache() {
 		this.cache = new LinkedList<>(memory);
 		return this;
 	}
@@ -78,7 +82,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @param t das Objekt, welches dem Speicher hinzugefügt werden soll.
 	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
 	 */
-	public MemoryCacheUnit add(T t) {
+	public final MemoryCacheUnit add(T t) {
 		memory.add(t);
 		if (t instanceof MemoryCacheUnit) {
 			numberOfElements = numberOfElements + ((MemoryCacheUnit) t).numberOfElements;
@@ -94,7 +98,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @return das unterste Element der cache-queue
 	 */
 	@Override
-	public T next() {
+	public final T next() {
 		return cache.remove();
 	}
 
@@ -104,7 +108,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @return den Iterator des cache's
 	 */
 	@Override
-	public Iterator<T> iterator() {
+	public final Iterator<T> iterator() {
 		return cache.iterator();
 	}
 
@@ -114,7 +118,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @return True, wenn der cache nicht leer ist, sonst false
 	 */
 	@Override
-	public boolean hasNext() {
+	public final boolean hasNext() {
 		return cache.peek() != null;
 	}
 
@@ -124,7 +128,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @param t das Objekt, für welches man wissen möchte, ob es sich im Cache befindet
 	 * @return True, wenn sich das Objekt im cache befindet, sonst false
 	 */
-	public boolean containedInCache(T t) {
+	public final boolean containedInCache(T t) {
 		return cache.contains(t);
 	}
 
@@ -134,7 +138,7 @@ public abstract class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Se
 	 * @param t das Objekt, für welches man wissen möchte, ob es sich im memory befindet
 	 * @return True, wenn sich das Objekt im memory befindet, sonst false
 	 * */
-	public boolean containedInMemory(T t) {
+	public final boolean containedInMemory(T t) {
 		return memory.contains(t);
 	}
 

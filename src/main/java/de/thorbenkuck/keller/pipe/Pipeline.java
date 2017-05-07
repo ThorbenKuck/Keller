@@ -1,15 +1,15 @@
 package de.thorbenkuck.keller.pipe;
 
-import de.thorbenkuck.keller.datatypes.interfaces.Acceptor;
+import de.thorbenkuck.keller.datatypes.interfaces.PipelineHandler;
 
 public interface Pipeline<T> {
-	void addLast(Acceptor<T> acceptor);
+	void addLast(PipelineHandler<T> pipelineHandler);
 
-	void addFirst(Acceptor<T> acceptor);
+	void addFirst(PipelineHandler<T> pipelineHandler);
 
-	void remove(Acceptor<T> acceptor);
+	void remove(PipelineHandler<T> pipelineHandler);
 
-	void call(T e);
+	void handle(T e);
 
 	void setMode(PipelineModes pipelineMode);
 }

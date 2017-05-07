@@ -13,7 +13,7 @@ public class PipelineTest {
 		pipeline.addLast(testObject -> testObject.setValue(testObject.getValue() + 1));
 
 		TestObject testObject = new TestObject();
-		pipeline.call(testObject);
+		pipeline.handle(testObject);
 
 		assertEquals(testObject.getValue(), 1);
 	}
@@ -25,7 +25,7 @@ public class PipelineTest {
 		pipeline.addLast(testObject -> testObject.setValue(testObject.getValue() * 2));
 
 		TestObject testObject = new TestObject();
-		pipeline.call(testObject);
+		pipeline.handle(testObject);
 
 		assertEquals(testObject.getValue(), 2);
 	}
@@ -38,7 +38,7 @@ public class PipelineTest {
 		pipeline.addFirst(testObject -> testObject.setValue(testObject.getValue() + 1));
 
 		TestObject testObject = new TestObject();
-		pipeline.call(testObject);
+		pipeline.handle(testObject);
 
 		assertEquals(testObject.getValue(), 3);
 	}
