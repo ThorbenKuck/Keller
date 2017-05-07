@@ -1,4 +1,6 @@
-package de.thorbenkuck.keller.datatypes;
+package de.thorbenkuck.keller.implementation;
+
+import de.thorbenkuck.keller.datatypes.interfaces.MemoryCacheUnit;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -6,8 +8,8 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 /**
- * Die MemoryCacheUnit ist etwas wie ein resettable Stack / Queue. Eine interne Repräsentation der Elemente passiert auf 2 ebenen.
- * So kann über die Methode resetCache die MemoryCacheUnit "cloned" werden, ohne dass dies tatsächlich cloned werden muss.
+ * Die QueuedMemoryCacheUnit ist etwas wie ein resettable Stack / Queue. Eine interne Repräsentation der Elemente passiert auf 2 ebenen.
+ * So kann über die Methode resetCache die QueuedMemoryCacheUnit "cloned" werden, ohne dass dies tatsächlich cloned werden muss.
  *
  * Jedoch ist diese Klasse nicht 100%ig Thread-Safe. Zwar sind die Atribute volatile, aber die Methoden nicht synchronized.
  * Das hat den ganz einfachen Grund, dass die Performanz nicht leiden soll.
@@ -16,17 +18,17 @@ import java.util.Queue;
  *
  * @param <T> Der Objekt-Typ, welcher intern gespeichert werden soll.
  */
-public class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializable {
+public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializable {
 
 	protected volatile Queue<T> cache;
 	protected volatile Queue<T> memory;
 	protected volatile int numberOfElements;
 
 	/**
-	 * Da die MemoryCacheUnit nicht selbst instanziiert werden soll, sondern erweitert, ist der Konstruktor protected.
-	 * So wird verhindert, dass Prozesse, welche diese Nutzen, eine leere MemoryCacheUnit erhalten.
+	 * Da die QueuedMemoryCacheUnit nicht selbst instanziiert werden soll, sondern erweitert, ist der Konstruktor protected.
+	 * So wird verhindert, dass Prozesse, welche diese Nutzen, eine leere QueuedMemoryCacheUnit erhalten.
 	 */
-	protected MemoryCacheUnit() {
+	protected QueuedMemoryCacheUnit() {
 		cache = new LinkedList<>();
 		memory = new LinkedList<>();
 	}
@@ -62,30 +64,28 @@ public class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializabl
 		this.memory = new LinkedList<>();
 	}
 
-	protected final void resetMemory() {
-		this.memory = new LinkedList<>();
-	}
-
 	/**
 	 * Diese Methode setzt den Cache zurück. Alle jemals gespeicherten und nicht wieder entfernten Elemente werden damit in den Cache gesetzt
 	 *
 	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
 	 */
-	public final MemoryCacheUnit resetCache() {
+	@Override
+	public final QueuedMemoryCacheUnit resetCache() {
 		this.cache = new LinkedList<>(memory);
 		return this;
 	}
 
 	/**
-	 * Fügt ein Element dem Speicher hinzu. Es ist dabei auch möglich, MemoryCacheUnit's in den Speicher zu schreiben.
+	 * Fügt ein Element dem Speicher hinzu. Es ist dabei auch möglich, QueuedMemoryCacheUnit's in den Speicher zu schreiben.
 	 *
 	 * @param t das Objekt, welches dem Speicher hinzugefügt werden soll.
 	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
 	 */
-	public final MemoryCacheUnit add(T t) {
+	@Override
+	public final QueuedMemoryCacheUnit add(T t) {
 		memory.add(t);
-		if (t instanceof MemoryCacheUnit) {
-			numberOfElements = numberOfElements + ((MemoryCacheUnit) t).numberOfElements;
+		if (t instanceof QueuedMemoryCacheUnit) {
+			numberOfElements = numberOfElements + ((QueuedMemoryCacheUnit) t).numberOfElements;
 		} else {
 			numberOfElements++;
 		}
@@ -128,6 +128,7 @@ public class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializabl
 	 * @param t das Objekt, für welches man wissen möchte, ob es sich im Cache befindet
 	 * @return True, wenn sich das Objekt im cache befindet, sonst false
 	 */
+	@Override
 	public final boolean containedInCache(T t) {
 		return cache.contains(t);
 	}
@@ -138,6 +139,7 @@ public class MemoryCacheUnit<T> implements Iterable<T>, Iterator<T>, Serializabl
 	 * @param t das Objekt, für welches man wissen möchte, ob es sich im memory befindet
 	 * @return True, wenn sich das Objekt im memory befindet, sonst false
 	 * */
+	@Override
 	public final boolean containedInMemory(T t) {
 		return memory.contains(t);
 	}
