@@ -2,7 +2,7 @@ This is an base-framework which provides a number of handy functions.
 
 ---
 
-#Functions provided by this framework
+<h1>Functions provided by this framework</h1>
 
 ###Cache
 This framework provides an observable cache, defined by the <code>Cache</code> interface
