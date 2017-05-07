@@ -1,3 +1,10 @@
+<h1>!WARNING!</h1>
+This is framework is in development!<br>
+If you want to us it, go ahead, but i cannot guaranty that everything will stay the same or will function perfectly.<br>
+So take this framework with a grain of salt at the moment
+
+---
+
 This is an base-framework which provides a number of handy functions.
 
 ---
