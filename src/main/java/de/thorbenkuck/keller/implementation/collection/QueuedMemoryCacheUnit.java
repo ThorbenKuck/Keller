@@ -1,6 +1,4 @@
-package de.thorbenkuck.keller.implementation;
-
-import de.thorbenkuck.keller.datatypes.interfaces.MemoryCacheUnit;
+package de.thorbenkuck.keller.implementation.collection;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -108,8 +106,8 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 * @return den Iterator des cache's
 	 */
 	@Override
-	public final Iterator<T> iterator() {
-		return cache.iterator();
+	public Iterator<T> iterator() {
+		return new InnerIterator<>(cache);
 	}
 
 	/**
@@ -144,4 +142,22 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 		return memory.contains(t);
 	}
 
+	private class InnerIterator<I> implements Iterator<I> {
+
+		private Queue<I> cache;
+
+		private InnerIterator(Queue<I> cache) {
+			this.cache = cache;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return cache.peek() != null;
+		}
+
+		@Override
+		public I next() {
+			return cache.poll();
+		}
+	}
 }

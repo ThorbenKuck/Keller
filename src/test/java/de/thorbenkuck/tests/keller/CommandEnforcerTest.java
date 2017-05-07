@@ -1,3 +1,5 @@
+package de.thorbenkuck.tests.keller;
+
 import de.thorbenkuck.keller.command.CommandEnforcer;
 import de.thorbenkuck.keller.command.Enforcer;
 import org.junit.Test;
@@ -44,6 +46,11 @@ public class CommandEnforcerTest {
 
 		enforcer.runOn(testObject);
 		assertEquals(testObject.getValue(), 12);
+	}
+
+	@Test
+	public void testCreation() {
+		Enforcer<TestObject> enforcer = Enforcer.unifiedCreation();
 	}
 
 }

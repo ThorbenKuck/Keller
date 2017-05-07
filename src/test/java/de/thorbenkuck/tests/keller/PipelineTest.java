@@ -1,3 +1,5 @@
+package de.thorbenkuck.tests.keller;
+
 import de.thorbenkuck.keller.pipe.Pipeline;
 import de.thorbenkuck.keller.pipe.QueuedPipeline;
 import org.junit.Test;

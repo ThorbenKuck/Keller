@@ -1,3 +1,5 @@
+package de.thorbenkuck.tests.keller;
+
 import de.thorbenkuck.keller.cache.*;
 import org.junit.Test;
 

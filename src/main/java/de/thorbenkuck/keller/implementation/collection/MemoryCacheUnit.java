@@ -1,11 +1,13 @@
-package de.thorbenkuck.keller.datatypes.interfaces;
+package de.thorbenkuck.keller.implementation.collection;
 
-import de.thorbenkuck.keller.implementation.QueuedMemoryCacheUnit;
-
-import java.io.Serializable;
 import java.util.Iterator;
 
 public interface MemoryCacheUnit<T> extends Iterable<T>, Iterator<T> {
+
+	static <T> MemoryCacheUnit<T> unifiedCreation() {
+		return new QueuedMemoryCacheUnit<>();
+	}
+
 	/**
 	 * Diese Methode setzt den Cache zurück. Alle jemals gespeicherten und nicht wieder entfernten Elemente werden damit in den Cache gesetzt
 	 *

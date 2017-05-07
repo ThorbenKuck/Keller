@@ -1,3 +1,5 @@
+package de.thorbenkuck.tests.keller;
+
 class TestObject {
 	private int value = 0;
 
