@@ -10,6 +10,7 @@ This framework provides an observable cache, defined by the <code>Cache</code> i
 </p>
 
 <h3>Data-types</h3>
+<p>
 There are some interfaces and data types, provided by this framework, which include
 * Adapter interface
 * Factory interface
@@ -17,9 +18,12 @@ There are some interfaces and data types, provided by this framework, which incl
 * QueuedAction interface
 * AwaitingRunnable class
 * MemoryCacheUnit class
+</p>
 
 <h3>Pipeline</h3>
+<p>
 Also this frameworks contains a base for the "Pipeline-Pattern" which takes of the burden to create and maintain a well functioning Pipeline
+</p>
 
 ---
 
