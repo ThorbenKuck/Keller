@@ -1,6 +1,5 @@
 package de.thorbenkuck.keller.cache;
 
-import java.util.Observer;
 import java.util.Optional;
 
 public interface Cache {
@@ -21,11 +20,11 @@ public interface Cache {
 
 	<T> Optional<T> get(Class<T> clazz);
 
-	void addCacheObserver(CacheObserver cacheObserver);
+	<T> void addCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver);
 
-	void removeCacheObserver(CacheObserver cacheObserver);
+	<T> void removeCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver);
 
-	void addGeneralObserver(Observer observer);
+	void addGeneralCacheObserver(GeneralCacheObserver generalCacheObserver);
 
-	void removeGeneralObserver(Observer observer);
+	void removeGeneralCacheObserver(GeneralCacheObserver generalCacheObserver);
 }

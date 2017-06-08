@@ -1,34 +1,52 @@
 package de.thorbenkuck.keller.pipe;
 
-import de.thorbenkuck.keller.datatypes.interfaces.Handler;
-
 import java.io.Serializable;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Predicate;
 
-public abstract class AbstractPipeline<T, C extends Collection<PipelineService<T>>> implements Pipeline<T>, Serializable {
+public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T>>> implements Pipeline<T>, Serializable {
 
-	protected final C core;
-	protected final Lock coreLock = new ReentrantLock(true);
-	protected final Map<Predicate<PipelineModes>, Handler<PipelineModes, C>> handler = new HashMap<>();
+	private final C core;
+	private CountDownLatch countDownLatch = new CountDownLatch(0);
 
 	protected AbstractPipeline(C c) {
 		this.core = c;
 	}
 
 	@Override
-	public void doPipeline(T element) {
-		synchronized (coreLock) {
+	public void run(T element) {
+		try {
+			assertIsOpen();
+			lock();
+			core.forEach(pipelineService -> pipelineService.run(element));
+		} finally {
+			unlock();
+		}
+
+	}
+
+	@Override
+	public void lock() {
+		synchronized (core) {
 			try {
-				coreLock.lock();
-				core.forEach(pipelineService -> pipelineService.handle(element));
-			} finally {
-				coreLock.unlock();
+				countDownLatch.await();
+				countDownLatch = new CountDownLatch(1);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
+	}
+
+	@Override
+	public void unlock() {
+		synchronized (core) {
+			countDownLatch.countDown();
+		}
+	}
+
+	protected C getCore() {
+		return this.core;
 	}
 }

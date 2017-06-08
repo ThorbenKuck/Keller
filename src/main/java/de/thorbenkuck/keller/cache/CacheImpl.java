@@ -2,9 +2,11 @@ package de.thorbenkuck.keller.cache;
 
 import java.util.*;
 
-class CacheImpl extends Observable implements Cache {
+class CacheImpl implements Cache {
 
 	private final Map<Class<?>, Object> internals = new HashMap<>();
+	private final Map<Class<?>, List<CacheObserver<?>>> observers = new HashMap<>();
+	private final List<GeneralCacheObserver> generalCacheObservers = new ArrayList<>();
 
 	@Override
 	public void update(Object object) {
@@ -64,23 +66,26 @@ class CacheImpl extends Observable implements Cache {
 	}
 
 	@Override
-	public void addCacheObserver(CacheObserver cacheObserver) {
-		addObserver(cacheObserver);
+	public <T> void addCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		observers.computeIfAbsent(clazz, k -> new ArrayList<>());
+		observers.get(clazz).add(cacheObserver);
 	}
 
 	@Override
-	public void removeCacheObserver(CacheObserver cacheObserver) {
-		deleteObserver(cacheObserver);
+	public <T> void removeCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		if(observers.get(clazz) != null) {
+			observers.get(clazz).remove(cacheObserver);
+		}
 	}
 
 	@Override
-	public void addGeneralObserver(Observer observer) {
-		addObserver(observer);
+	public void addGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
+		generalCacheObservers.add(generalCacheObserver);
 	}
 
 	@Override
-	public void removeGeneralObserver(Observer observer) {
-		deleteObserver(observer);
+	public void removeGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
+		generalCacheObservers.remove(generalCacheObserver);
 	}
 
 	@Override
@@ -91,20 +96,40 @@ class CacheImpl extends Observable implements Cache {
 	}
 
 	private void notifyAboutRemovedEntry(Class clazz) {
-		sendNotify(new DeletedEntryEvent(clazz));
-	}
+		for(CacheObserver cacheObserver : getObserversFor(clazz)) {
+			cacheObserver.deletedEntry(clazz, this);
+		}
 
-	private synchronized void sendNotify(Object o) {
-		setChanged();
-		notifyObservers(o);
-		clearChanged();
+		for(GeneralCacheObserver generalCacheObserver : getGeneralCacheObservers()) {
+			generalCacheObserver.deletedEntry(clazz, this);
+		}
 	}
 
 	private void notifyAboutChangedEntry(Object updatedEntry) {
-		sendNotify(new UpdatedEntryEvent(updatedEntry));
+		for(CacheObserver cacheObserver : getObserversFor(updatedEntry.getClass())) {
+			cacheObserver.updatedEntry(updatedEntry, this);
+		}
+
+		for(GeneralCacheObserver generalCacheObserver : getGeneralCacheObservers()) {
+			generalCacheObserver.updatedEntry(updatedEntry, this);
+		}
 	}
 
 	private void notifyAboutNewEntry(Object newEntry) {
-		sendNotify(new NewEntryEvent(newEntry));
+		for(CacheObserver cacheObserver : getObserversFor(newEntry.getClass())) {
+			cacheObserver.newEntry(newEntry, this);
+		}
+
+		for(GeneralCacheObserver generalCacheObserver : getGeneralCacheObservers()) {
+			generalCacheObserver.newEntry(newEntry, this);
+		}
+	}
+
+	private List<CacheObserver<?>> getObserversFor(Class clazz) {
+		return observers.get(clazz);
+	}
+
+	private List<GeneralCacheObserver> getGeneralCacheObservers() {
+		return generalCacheObservers;
 	}
 }

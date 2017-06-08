@@ -1,16 +1,20 @@
 package de.thorbenkuck.keller.pipe;
 
-public interface Pipeline<T> {
+import de.thorbenkuck.keller.datatypes.interfaces.Closable;
+import de.thorbenkuck.keller.datatypes.interfaces.GenericRunnable;
+import de.thorbenkuck.keller.datatypes.interfaces.Lockable;
+
+import java.util.function.Consumer;
+
+public interface Pipeline<T> extends GenericRunnable<T>, Closable, Lockable {
 
 	static <T> Pipeline<T> unifiedCreation() {
 		return new QueuedPipeline<>();
 	}
 
-	void addLast(PipelineService<T> pipelineService);
+	PipelineCondition<T> addLast(Consumer<T> pipelineService);
 
-	void addFirst(PipelineService<T> pipelineService);
+	PipelineCondition<T> addFirst(Consumer<T> pipelineService);
 
-	void remove(PipelineService<T> pipelineService);
-
-	void doPipeline(T e);
+	void remove(Consumer<T> pipelineService);
 }

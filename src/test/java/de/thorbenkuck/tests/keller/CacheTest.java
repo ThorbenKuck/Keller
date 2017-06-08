@@ -14,30 +14,25 @@ public class CacheTest {
 	@Test
 	public void addCacheAddition() {
 
-		Object toTest = new Object();
+		TestObject toTest = new TestObject();
 
 		Cache cache = Cache.create();
-		TestCacheObserver testCacheObserver = new TestCacheObserver(o ->
-				o.getClass().equals(NewEntryEvent.class)
-						&& ((NewEntryEvent) o).getObject().getClass().equals(Object.class)
-		);
-		cache.addCacheObserver(testCacheObserver);
+		TestCacheObserver testCacheObserver = new TestCacheObserver();
+		cache.addCacheObserver(TestObject.class, testCacheObserver);
 
+		cache.addNew(toTest);
+		toTest.setValue(10);
 		cache.addAndOverride(toTest);
-		assertTrue(testCacheObserver.successfull());
-		cache.addAndOverride(toTest);
-		assertFalse(testCacheObserver.successfull());
+		cache.remove(toTest.getClass());
 	}
 
 }
 
-class TestCacheObserver extends AbstractCacheObserver {
+class TestCacheObserver implements CacheObserver<TestObject> {
 
 	private boolean successfull = false;
-	private Predicate<Object> objectPredicate;
 
-	TestCacheObserver(Predicate<Object> objectPredicate) {
-		this.objectPredicate = objectPredicate;
+	TestCacheObserver() {
 	}
 
 	boolean successfull() {
@@ -45,17 +40,17 @@ class TestCacheObserver extends AbstractCacheObserver {
 	}
 
 	@Override
-	public void newEntry(NewEntryEvent newEntryEvent, Observable observable) {
-		successfull = objectPredicate.test(newEntryEvent);
+	public void newEntry(TestObject newEntryEvent, Cache cache) {
+		System.out.println("Neues Object! " + newEntryEvent.getValue());
 	}
 
 	@Override
-	public void updatedEntry(UpdatedEntryEvent updatedEntryEvent, Observable observable) {
-		successfull = objectPredicate.test(updatedEntryEvent);
+	public void updatedEntry(TestObject updatedEntryEvent, Cache cache) {
+		System.out.println("Updated Object! " + updatedEntryEvent.getValue());
 	}
 
 	@Override
-	public void deletedEntry(DeletedEntryEvent deletedEntryEvent, Observable observable) {
-		successfull = objectPredicate.test(deletedEntryEvent);
+	public void deletedEntry(Class<TestObject> t, Cache cache) {
+		System.out.println("oh, gelöscht.. " + t);
 	}
 }
