@@ -1,14 +1,17 @@
 package de.thorbenkuck.tests.keller;
 
 import de.thorbenkuck.keller.repository.Repository;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 
 public class RepositoryTest {
 
+	@Ignore
 	@Test
 	public void generalTest() {
 		Repository repository = Repository.instantiate();
@@ -19,6 +22,8 @@ public class RepositoryTest {
 
 		TestObject returnValue = repository.access(TestObject.class)
 				.withRequirement()
+				.objectFulfills(Objects::nonNull)
+				.and()
 				.objectFulfills(testObject -> testObject.getValue() > 0)
 				.and()
 				.objectDoesNotMeet(testObject -> testObject.getValue() == 2)

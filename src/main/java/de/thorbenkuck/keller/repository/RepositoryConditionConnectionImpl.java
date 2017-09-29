@@ -15,6 +15,6 @@ public class RepositoryConditionConnectionImpl<T> implements RepositoryCondition
 
 	@Override
 	public Supplying<T> then() {
-		return null;
+		return new SupplyingImpl<>(actionStack);
 	}
 }

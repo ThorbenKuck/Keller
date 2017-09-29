@@ -12,11 +12,13 @@ class ActionStack<T> {
 	private final List<Runnable> ifPresent = new ArrayList<>();
 	private final List<Runnable> ifNotPresent = new ArrayList<>();
 	private final List<T> matchingObjects = new ArrayList<>();
+	private final RepositoryInternals internals;
 	private T primaryMatchingElement;
 	private T nullObject;
 	private Class<T> clazz;
 
-	ActionStack(Class<T> clazz) {
+	ActionStack(RepositoryInternals internals, Class<T> clazz) {
+		this.internals = internals;
 		this.clazz = clazz;
 	}
 
@@ -69,5 +71,9 @@ class ActionStack<T> {
 
 	public void setNullObject(T nullObject) {
 		this.nullObject = nullObject;
+	}
+
+	public RepositoryInternals getInternals() {
+		return internals;
 	}
 }

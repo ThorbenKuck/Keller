@@ -18,6 +18,7 @@ public class MemoryCacheUnitTest {
 		TestObject testObject = new TestObject();
 		MemoryCacheUnit<TestObject> memoryCacheUnit = MemoryCacheUnit.unifiedCreation();
 		memoryCacheUnit.add(testObject);
+		memoryCacheUnit.resetCache();
 
 		assertTrue(memoryCacheUnit.containedInCache(testObject));
 		assertTrue(memoryCacheUnit.containedInMemory(testObject));

@@ -11,7 +11,7 @@ class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 	private final ActionStack<T> actionStack;
 
 	ConditionalSupplyingImpl(RepositoryInternals repositoryInternals, Class<T> clazz) {
-		this(repositoryInternals, clazz, new ActionStack<>(clazz));
+		this(repositoryInternals, clazz, new ActionStack<>(repositoryInternals, clazz));
 	}
 
 	ConditionalSupplyingImpl(RepositoryInternals repositoryInternals, Class<T> clazz, ActionStack<T> actionStack) {
@@ -52,6 +52,6 @@ class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 
 	@Override
 	public RepositoryCondition<T> withRequirement() {
-		return null;
+		return new RepositoryConditionImpl<>(actionStack);
 	}
 }

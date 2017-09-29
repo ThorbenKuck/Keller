@@ -10,12 +10,12 @@ class WayPointImpl<T> implements WayPoint<T> {
 
 	@Override
 	public Finalizer<T> otherwise() {
-		return null;
+		return new FinalizerImpl<>(actionStack);
 	}
 
 	@Override
 	public void now() {
-		// Look if present, if not, run ifNotPresent
+		new FinalizerImpl<>(actionStack).getAny();
 	}
 
 	@Override

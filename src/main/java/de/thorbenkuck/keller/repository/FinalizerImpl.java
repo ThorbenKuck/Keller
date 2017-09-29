@@ -1,9 +1,11 @@
 package de.thorbenkuck.keller.repository;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FinalizerImpl<T> implements Finalizer<T> {
@@ -11,17 +13,27 @@ public class FinalizerImpl<T> implements Finalizer<T> {
 	private RepositoryInternals repositoryInternals;
 	private ActionStack<T> actionStack;
 
-	public FinalizerImpl(RepositoryInternals repositoryInternals, ActionStack<T> actionStack) {
-		this.repositoryInternals = repositoryInternals;
+	public FinalizerImpl(ActionStack<T> actionStack) {
+		this.repositoryInternals = actionStack.getInternals();
 		this.actionStack = actionStack;
 	}
 
 	@Override
 	public T getFirst() {
-		Stream stream = getFilteredStream();
-		Optional<Object> optional = stream.findFirst();
-		if(optional.isPresent()) {
-			return (T) optional.get();
+		Optional<Object> optional = getFilteredStream().findFirst();
+		return handle(optional);
+	}
+
+	@Override
+	public T getAny() {
+		Optional<Object> optional = getFilteredStream().findAny();
+		return handle(optional);
+	}
+	
+	private T handle(Optional<Object> objectOptional) {
+		if(objectOptional.isPresent()) {
+			actionStack.getIfPresent().forEach(Runnable::run);
+			return (T) objectOptional.get();
 		} else {
 			actionStack.getIfNotPresent().forEach(Runnable::run);
 			return actionStack.getNullObject();
@@ -29,12 +41,8 @@ public class FinalizerImpl<T> implements Finalizer<T> {
 	}
 
 	@Override
-	public T getAny() {
-		return null;
-	}
-
-	@Override
 	public Collection<T> getAll() {
+//		List<Object> objects = getFilteredStream().collect(Collectors.toCollection(ArrayList::new));
 		return null;
 	}
 

@@ -3,7 +3,7 @@ package de.thorbenkuck.keller.repository;
 public interface Repository {
 
 	static Repository instantiate() {
-		return null;
+		return new ListingRepository();
 	}
 
 	boolean clear();

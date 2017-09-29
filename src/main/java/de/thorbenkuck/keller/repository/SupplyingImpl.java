@@ -1,25 +1,33 @@
 package de.thorbenkuck.keller.repository;
 
 import java.util.Collection;
+import java.util.Random;
 
 public class SupplyingImpl<T> implements Supplying<T> {
+
+	private ActionStack<T> actionStack;
+
+	public SupplyingImpl(ActionStack<T> actionStack) {
+		this.actionStack = actionStack;
+	}
+
 	@Override
 	public T getFirst() {
-		return null;
+		return actionStack.getPrimaryMatchingElement();
 	}
 
 	@Override
 	public T getAny() {
-		return null;
+		return actionStack.getMatchingObjects().get(new Random(12300123).nextInt(actionStack.getMatchingObjects().size()));
 	}
 
 	@Override
 	public Collection<T> getAll() {
-		return null;
+		return actionStack.getMatchingObjects();
 	}
 
 	@Override
 	public NotPresentHandler<T> ifNotPresent() {
-		return null;
+		return new NotPresentHandlerImpl<>(actionStack);
 	}
 }
