@@ -1,9 +1,7 @@
 package de.thorbenkuck.keller.implementation.collection;
 
 import java.io.Serializable;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.*;
 
 /**
  * Die QueuedMemoryCacheUnit ist etwas wie ein resettable Stack / Queue. Eine interne Repräsentation der Elemente passiert auf 2 ebenen.
@@ -20,13 +18,8 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 
 	protected volatile Queue<T> cache;
 	protected volatile Queue<T> memory;
-	protected volatile int numberOfElements;
 
-	/**
-	 * Da die QueuedMemoryCacheUnit nicht selbst instanziiert werden soll, sondern erweitert, ist der Konstruktor protected.
-	 * So wird verhindert, dass Prozesse, welche diese Nutzen, eine leere QueuedMemoryCacheUnit erhalten.
-	 */
-	protected QueuedMemoryCacheUnit() {
+	public QueuedMemoryCacheUnit() {
 		cache = new LinkedList<>();
 		memory = new LinkedList<>();
 	}
@@ -63,9 +56,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * Diese Methode setzt den Cache zurück. Alle jemals gespeicherten und nicht wieder entfernten Elemente werden damit in den Cache gesetzt
-	 *
-	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
+	 * {@inheritDoc}
 	 */
 	@Override
 	public final QueuedMemoryCacheUnit resetCache() {
@@ -74,26 +65,23 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * Fügt ein Element dem Speicher hinzu. Es ist dabei auch möglich, QueuedMemoryCacheUnit's in den Speicher zu schreiben.
-	 *
-	 * @param t das Objekt, welches dem Speicher hinzugefügt werden soll.
-	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
+	 * {@inheritDoc}
 	 */
 	@Override
-	public final QueuedMemoryCacheUnit add(T t) {
+	public final void add(T t) {
 		memory.add(t);
-		if (t instanceof QueuedMemoryCacheUnit) {
-			numberOfElements = numberOfElements + ((QueuedMemoryCacheUnit) t).numberOfElements;
-		} else {
-			numberOfElements++;
-		}
-		return resetCache();
 	}
 
 	/**
-	 * Bekomme das nächste Element, aus dem Cache. Dieser Aufruf ist äquivalent zu cache.remove() und verhält sich, wie das Entfernen eines Fifo-Elements
-	 *
-	 * @return das unterste Element der cache-queue
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Collection<T> duplicateMemory() {
+		return new ArrayList<>(memory);
+	}
+
+	/**
+	 * {@inheritDoc}
 	 */
 	@Override
 	public final T next() {
@@ -101,9 +89,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * holt den Iterator aus dem cache.
-	 *
-	 * @return den Iterator des cache's
+	 * {@inheritDoc}
 	 */
 	@Override
 	public Iterator<T> iterator() {
@@ -111,9 +97,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * Beschreibt, ob es noch ein weiteres Element im cache gibt, oder dieser leer ist.
-	 *
-	 * @return True, wenn der cache nicht leer ist, sonst false
+	 * {@inheritDoc}
 	 */
 	@Override
 	public final boolean hasNext() {
@@ -121,10 +105,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * Beschreibt, ob ein bestimmtes Element im cache befindet.
-	 *
-	 * @param t das Objekt, für welches man wissen möchte, ob es sich im Cache befindet
-	 * @return True, wenn sich das Objekt im cache befindet, sonst false
+	 * {@inheritDoc}
 	 */
 	@Override
 	public final boolean containedInCache(T t) {
@@ -132,29 +113,54 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	}
 
 	/**
-	 * Beschreibt, ob ein bestimmtes Element im memory befindet.
-	 *
-	 * @param t das Objekt, für welches man wissen möchte, ob es sich im memory befindet
-	 * @return True, wenn sich das Objekt im memory befindet, sonst false
-	 * */
+	 * {@inheritDoc}
+	 */
 	@Override
 	public final boolean containedInMemory(T t) {
 		return memory.contains(t);
 	}
 
-	private class InnerIterator<I> implements Iterator<I> {
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int size() {
+		return memory.size();
+	}
 
-		private Queue<I> cache;
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public int cacheSize() {
+		return cache.size();
+	}
 
-		private InnerIterator(Queue<I> cache) {
+	/**
+	 * This is the Iterator of this QueuedMemoryCacheUnit.
+	 * It takes a Queue, so that it can work on it.
+	 *
+	 * @param <I>
+	 */
+	protected class InnerIterator<I> implements Iterator<I> {
+
+		private final Queue<I> cache;
+
+		private InnerIterator(final Queue<I> cache) {
 			this.cache = cache;
 		}
 
+		/**
+		 * {@inheritDoc}
+		 */
 		@Override
 		public boolean hasNext() {
 			return cache.peek() != null;
 		}
 
+		/**
+		 * {@inheritDoc}
+		 */
 		@Override
 		public I next() {
 			return cache.poll();

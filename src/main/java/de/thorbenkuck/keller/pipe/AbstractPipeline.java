@@ -8,45 +8,81 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T>>> implements Pipeline<T>, Serializable {
 
+	private boolean closed = false;
 	private final C core;
-	private CountDownLatch countDownLatch = new CountDownLatch(0);
+	private final Lock locker = new ReentrantLock(true);
 
 	protected AbstractPipeline(C c) {
 		this.core = c;
 	}
 
 	@Override
-	public void run(T element) {
-		try {
-			assertIsOpen();
-			lock();
+	public final void run(T element) {
+		assertIsOpen();
+		synchronized (core) {
 			core.forEach(pipelineService -> pipelineService.run(element));
-		} finally {
-			unlock();
-		}
-
-	}
-
-	@Override
-	public void lock() {
-		synchronized (core) {
-			try {
-				countDownLatch.await();
-				countDownLatch = new CountDownLatch(1);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 
 	@Override
-	public void unlock() {
-		synchronized (core) {
-			countDownLatch.countDown();
+	public final void lock() {
+		locker.lock();
+	}
+
+	@Override
+	public final void unlock() {
+		locker.unlock();
+	}
+
+	@Override
+	public void close() {
+		lock();
+		closed = true;
+	}
+
+	@Override
+	public void open() {
+		unlock();
+		closed = false;
+	}
+
+	@Override
+	public boolean isClosed() {
+		return closed;
+	}
+
+	@Override
+	public void assertIsOpen() {
+		if(closed) {
+			throw new RuntimeException("Pipeline has to be open!");
 		}
 	}
 
 	protected C getCore() {
 		return this.core;
+	}
+
+	protected final void addPipelineElement(PipelineElement<T> element) {
+		synchronized (core) {
+			core.add(element);
+		}
+	}
+
+	protected final void clearCore() {
+		synchronized (core) {
+			core.clear();
+		}
+	}
+
+	protected final void addPipelineElements(Collection<PipelineElement<T>> elements) {
+		synchronized (core) {
+			core.addAll(elements);
+		}
+	}
+
+	protected final void removePipelineElement(PipelineElement<T> element) {
+		synchronized (core) {
+			core.remove(element);
+		}
 	}
 }

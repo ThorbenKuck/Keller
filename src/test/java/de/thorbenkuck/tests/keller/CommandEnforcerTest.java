@@ -17,7 +17,7 @@ public class CommandEnforcerTest {
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() * 2));
 		// Erwartet = (0+1) * 2 = 2
 
-		enforcer.runOn(testObject);
+		enforcer.run(testObject);
 		assertEquals(testObject.getValue(), 2);
 	}
 
@@ -30,7 +30,7 @@ public class CommandEnforcerTest {
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() + 1));
 		// Erwartet = (0*2) + 1 = 1
 
-		enforcer.runOn(testObject);
+		enforcer.run(testObject);
 		assertEquals(testObject.getValue(), 1);
 	}
 
@@ -44,7 +44,7 @@ public class CommandEnforcerTest {
 		// Erwartet = 0 + 1 = 1
 		// Danach reset auf 12
 
-		enforcer.runOn(testObject);
+		enforcer.run(testObject);
 		assertEquals(testObject.getValue(), 12);
 	}
 

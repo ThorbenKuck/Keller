@@ -4,9 +4,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.function.Consumer;
 
-public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement<T>>> implements Pipeline<T> {
-
-	private boolean closed = false;
+public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement<T>>> {
 
 	public QueuedPipeline() {
 		super(new LinkedList<>());
@@ -18,7 +16,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		try {
 			assertIsOpen();
 			lock();
-			getCore().add(element);
+			addPipelineElement(element);
 		} finally {
 			unlock();
 		}
@@ -35,8 +33,8 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 			assertIsOpen();
 			lock();
 			newCore.addAll(core);
-			core.clear();
-			core.addAll(newCore);
+			clearCore();
+			addPipelineElements(newCore);
 		} finally {
 			unlock();
 		}
@@ -48,33 +46,9 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		try {
 			assertIsOpen();
 			lock();
-			getCore().remove(new PipelineElement<>(consumer));
+			removePipelineElement(new PipelineElement<>(consumer));
 		} finally {
 			unlock();
-		}
-	}
-
-	@Override
-	public void close() {
-		lock();
-		closed = true;
-	}
-
-	@Override
-	public void open() {
-		unlock();
-		closed = false;
-	}
-
-	@Override
-	public boolean isClosed() {
-		return closed;
-	}
-
-	@Override
-	public void assertIsOpen() {
-		if(closed) {
-			throw new RuntimeException("Pipeline has to be open!");
 		}
 	}
 }

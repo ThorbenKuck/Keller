@@ -31,4 +31,13 @@ public interface QueuedAction {
 	 */
 	default void doAfter() {
 	}
+
+	/**
+	 * Diese Methode ruft die notwendigen methoden auf. Dadurch muss das nicht immer wieder geschrieben werden.
+	 */
+	static void call(QueuedAction action) {
+		action.doBefore();
+		action.doAction();
+		action.doAfter();
+	}
 }

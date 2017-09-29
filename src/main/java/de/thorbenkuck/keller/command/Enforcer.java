@@ -1,16 +1,15 @@
 package de.thorbenkuck.keller.command;
 
+import de.thorbenkuck.keller.datatypes.interfaces.GenericRunnable;
 import de.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
 
 import java.util.Collection;
 
-public interface Enforcer<T> {
+public interface Enforcer<T> extends GenericRunnable<T> {
 
 	static <T> Enforcer<T> unifiedCreation() {
 		return new CommandEnforcer<>();
 	}
-
-	void runOn(T t);
 
 	void awaitFinish() throws InterruptedException;
 

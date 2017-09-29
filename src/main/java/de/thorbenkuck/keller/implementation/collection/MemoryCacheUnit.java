@@ -1,5 +1,6 @@
 package de.thorbenkuck.keller.implementation.collection;
 
+import java.util.Collection;
 import java.util.Iterator;
 
 public interface MemoryCacheUnit<T> extends Iterable<T>, Iterator<T> {
@@ -7,6 +8,10 @@ public interface MemoryCacheUnit<T> extends Iterable<T>, Iterator<T> {
 	static <T> MemoryCacheUnit<T> unifiedCreation() {
 		return new QueuedMemoryCacheUnit<>();
 	}
+
+//	static <T> MemoryCacheUnit<T> of(Collection<T> copy) {
+//
+//	}
 
 	/**
 	 * Diese Methode setzt den Cache zurück. Alle jemals gespeicherten und nicht wieder entfernten Elemente werden damit in den Cache gesetzt
@@ -16,12 +21,11 @@ public interface MemoryCacheUnit<T> extends Iterable<T>, Iterator<T> {
 	QueuedMemoryCacheUnit resetCache();
 
 	/**
-	 * Fügt ein Element dem Speicher hinzu. Es ist dabei auch möglich, QueuedMemoryCacheUnit's in den Speicher zu schreiben.
+	 * Gibt eine neue Instanz des internen memorys zurück.
 	 *
-	 * @param t das Objekt, welches dem Speicher hinzugefügt werden soll.
-	 * @return einen Zeiger auf sich selbst, damit das Queue'n von Anweisungen möglich ist.
+	 * @return eine bel. Collection mit den, im Memory befindlichen Elementen
 	 */
-	QueuedMemoryCacheUnit add(T t);
+	Collection<T> duplicateMemory();
 
 	/**
 	 * Beschreibt, ob ein bestimmtes Element im cache befindet.
@@ -38,4 +42,26 @@ public interface MemoryCacheUnit<T> extends Iterable<T>, Iterator<T> {
 	 * @return True, wenn sich das Objekt im memory befindet, sonst false
 	 * */
 	boolean containedInMemory(T t);
+
+	/**
+	 * Other than {@link #size()}, this method returns the current size of the cache.
+	 *
+	 * @return the size of the cache
+	 */
+	int cacheSize();
+
+	/**
+	 * This method returns the current size of the memory
+	 *
+	 * @return the size of the memory
+	 */
+	int size();
+
+	/**
+	 * Adds an element to this MemoryCacheUnit.
+	 * It adds the given Element to the Memory, so youd have to call {@link #resetCache()} to add it to the cache afterwards.
+	 *
+	 * @param t The element, that should be added
+	 */
+	void add(T t);
 }

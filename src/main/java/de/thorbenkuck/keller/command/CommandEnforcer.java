@@ -4,6 +4,7 @@ import de.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
 import de.thorbenkuck.keller.pipe.Pipeline;
 import de.thorbenkuck.keller.pipe.QueuedPipeline;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
@@ -17,6 +18,18 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 	private final Pipeline<T> pipeline = new QueuedPipeline<>();
 	private QueuedAction onFinish = () -> {};
 	private CountDownLatch countDownLatch = new CountDownLatch(0);
+
+	public CommandEnforcer() {
+		// Do nothing
+	}
+
+	public CommandEnforcer(Collection<Command<T>> core) {
+		addCommand(core);
+	}
+
+	public CommandEnforcer(Command<T>... coreArray) {
+		this(Arrays.asList(coreArray));
+	}
 
 	private void overrideExistingCountDownLatch() {
 		try {
@@ -39,14 +52,12 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 
 	private void afterRun() {
 		if(onFinish != null) {
-			onFinish.doBefore();
-			onFinish.doAction();
-			onFinish.doAfter();
+			QueuedAction.call(onFinish);
 		}
 	}
 
 	@Override
-	public void runOn(T t) {
+	public void run(T t) {
 		try {
 			lock.lock();
 			running = true;
