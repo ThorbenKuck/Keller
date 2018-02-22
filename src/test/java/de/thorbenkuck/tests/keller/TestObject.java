@@ -19,4 +19,9 @@ class TestObject {
 	void setValue(int i) {
 		value = i;
 	}
+
+	@Override
+	public String toString() {
+		return "TestObject{" + value + "}";
+	}
 }

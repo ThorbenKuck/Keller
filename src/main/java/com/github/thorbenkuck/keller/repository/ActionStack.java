@@ -53,6 +53,10 @@ class ActionStack<T> {
 		}
 	}
 
+	public Class<T> getType() {
+		return clazz;
+	}
+
 	public T getPrimaryMatchingElement() {
 		return primaryMatchingElement;
 	}

@@ -13,12 +13,12 @@ public class RepositoryConditionImpl<T> implements RepositoryCondition<T> {
 	@Override
 	public RepositoryConditionConnection<T> objectFulfills(Predicate<T> predicate) {
 		actionStack.addPredicate(predicate);
-		return new RepositoryConditionConnectionImpl<T>(actionStack);
+		return new RepositoryConditionConnectionImpl<>(actionStack);
 	}
 
 	@Override
 	public RepositoryConditionConnection<T> objectDoesNotMeet(Predicate<T> predicate) {
 		actionStack.addPredicate(t -> !predicate.test(t));
-		return new RepositoryConditionConnectionImpl<T>(actionStack);
+		return new RepositoryConditionConnectionImpl<>(actionStack);
 	}
 }

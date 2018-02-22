@@ -29,6 +29,14 @@ public abstract class AwaitingRunnable implements Runnable {
 		this(1);
 	}
 
+	protected abstract void execute();
+
+	@Override
+	public void run() {
+		execute();
+		finish();
+	}
+
 	/**
 	 * Dieser Konstruktor erwartet einen Integer wert, repräsentativ dafür, wie häufig die finish Methode aufgerufen werden muss,
 	 * damit der Runnable als beendet gilt.

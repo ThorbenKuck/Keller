@@ -20,6 +20,8 @@ public class RepositoryTest {
 		repository.put(new TestObject(1));
 		repository.put(new TestObject(2));
 
+		System.out.println(repository.access(TestObject.class).getAll());
+
 		TestObject returnValue = repository.access(TestObject.class)
 				.withRequirement()
 				.objectFulfills(Objects::nonNull)

@@ -1,8 +1,11 @@
 package com.github.thorbenkuck.keller.repository;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class FinalizerImpl<T> implements Finalizer<T> {
@@ -39,8 +42,8 @@ public class FinalizerImpl<T> implements Finalizer<T> {
 
 	@Override
 	public Collection<T> getAll() {
-//		List<Object> objects = getFilteredStream().collect(Collectors.toCollection(ArrayList::new));
-		return null;
+		List<Object> objects = getFilteredStream().collect(Collectors.toCollection(ArrayList::new));
+		return (Collection<T>) objects;
 	}
 
 	@Override
@@ -53,9 +56,9 @@ public class FinalizerImpl<T> implements Finalizer<T> {
 		return null;
 	}
 
-	private Stream getFilteredStream() {
+	private Stream<Object> getFilteredStream() {
 		return repositoryInternals.stream()
-				.filter(o -> o.getClass().equals(actionStack.getClass()))
+				.filter(o -> o.getClass().equals(actionStack.getType()))
 				.filter(o -> actionStack.getPredicateList().stream()
 						.filter(predicate -> predicate.test((T) o))
 						.count() == actionStack.getPredicateList().size());
