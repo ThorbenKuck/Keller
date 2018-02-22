@@ -9,6 +9,25 @@ This is an base-framework which provides a number of handy functions.
 
 ---
 
+Maven:
+
+```
+<dependency>
+    <groupId>com.github.thorbenkuck</groupId>
+    <artifactId>Keller</artifactId>
+    <version>1.0-SNAPSHOT</version>
+</dependency>
+```
+
+gradle
+```
+dependencies {
+    compile group: 'com.github.thorbenkuck', name: 'Keller', version: '1.0-SNAPSHOT'
+}
+```
+
+---
+
 <h1>Functions provided by this framework</h1>
 The Keller framework is splited into 6 packages. The packages are briefly described as followed:
 
