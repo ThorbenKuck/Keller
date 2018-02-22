@@ -2,8 +2,10 @@ package com.github.thorbenkuck.keller.pipe;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T>>> implements Pipeline<T>, Serializable {
 
@@ -13,6 +15,10 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 
 	protected AbstractPipeline(C c) {
 		this.core = c;
+	}
+
+	protected PipelineElement<T> createPipelineElement(Consumer<T> consumer) {
+		return new PipelineElement<>(consumer);
 	}
 
 	@Override
@@ -58,7 +64,9 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 	}
 
 	protected C getCore() {
-		return this.core;
+		synchronized (core) {
+			return this.core;
+		}
 	}
 
 	protected final void addPipelineElement(PipelineElement<T> element) {

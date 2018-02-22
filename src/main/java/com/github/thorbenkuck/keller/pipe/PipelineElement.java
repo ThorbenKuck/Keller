@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-class PipelineElement<T> implements GenericRunnable<T> {
+public class PipelineElement<T> implements GenericRunnable<T> {
 
 	private final Consumer<T> consumer;
 	private final List<Predicate<T>> predicates = new ArrayList<>();

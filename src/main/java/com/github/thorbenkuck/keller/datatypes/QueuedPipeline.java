@@ -1,4 +1,9 @@
-package com.github.thorbenkuck.keller.pipe;
+package com.github.thorbenkuck.keller.datatypes;
+
+import com.github.thorbenkuck.keller.pipe.AbstractPipeline;
+import com.github.thorbenkuck.keller.pipe.PipelineCondition;
+import com.github.thorbenkuck.keller.pipe.PipelineConditionImpl;
+import com.github.thorbenkuck.keller.pipe.PipelineElement;
 
 import java.util.LinkedList;
 import java.util.Queue;
@@ -12,7 +17,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 
 	@Override
 	public PipelineCondition<T> addLast(Consumer<T> consumer) {
-		PipelineElement<T> element = new PipelineElement<>(consumer);
+		PipelineElement<T> element = createPipelineElement(consumer);
 		try {
 			assertIsOpen();
 			lock();
@@ -25,7 +30,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 
 	@Override
 	public PipelineCondition<T> addFirst(Consumer<T> consumer) {
-		PipelineElement<T> element = new PipelineElement<>(consumer);
+		PipelineElement<T> element = createPipelineElement(consumer);
 		Queue<PipelineElement<T>> newCore = new LinkedList<>();
 		newCore.add(element);
 		Queue<PipelineElement<T>> core = getCore();
@@ -46,7 +51,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		try {
 			assertIsOpen();
 			lock();
-			removePipelineElement(new PipelineElement<>(consumer));
+			removePipelineElement(createPipelineElement(consumer));
 		} finally {
 			unlock();
 		}

@@ -2,7 +2,7 @@ package com.github.thorbenkuck.keller.command;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
 import com.github.thorbenkuck.keller.pipe.Pipeline;
-import com.github.thorbenkuck.keller.pipe.QueuedPipeline;
+import com.github.thorbenkuck.keller.datatypes.QueuedPipeline;
 
 import java.util.Arrays;
 import java.util.Collection;
