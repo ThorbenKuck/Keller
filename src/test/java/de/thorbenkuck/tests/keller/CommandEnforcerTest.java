@@ -1,7 +1,7 @@
 package de.thorbenkuck.tests.keller;
 
-import de.thorbenkuck.keller.command.CommandEnforcer;
-import de.thorbenkuck.keller.command.Enforcer;
+import com.github.thorbenkuck.keller.command.CommandEnforcer;
+import com.github.thorbenkuck.keller.command.Enforcer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

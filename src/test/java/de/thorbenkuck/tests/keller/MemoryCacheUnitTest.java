@@ -1,6 +1,6 @@
 package de.thorbenkuck.tests.keller;
 
-import de.thorbenkuck.keller.implementation.collection.MemoryCacheUnit;
+import com.github.thorbenkuck.keller.collection.MemoryCacheUnit;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertFalse;

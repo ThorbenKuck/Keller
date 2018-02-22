@@ -1,10 +1,7 @@
 package de.thorbenkuck.tests.keller;
 
-import de.thorbenkuck.keller.cache.*;
+import com.github.thorbenkuck.keller.cache.*;
 import org.junit.Test;
-
-import java.util.Observable;
-import java.util.function.Predicate;
 
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;

@@ -1,6 +1,6 @@
 package de.thorbenkuck.tests.keller;
 
-import de.thorbenkuck.keller.repository.Repository;
+import com.github.thorbenkuck.keller.repository.Repository;
 import org.junit.Ignore;
 import org.junit.Test;
 

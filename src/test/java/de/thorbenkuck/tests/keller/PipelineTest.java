@@ -1,7 +1,7 @@
 package de.thorbenkuck.tests.keller;
 
-import de.thorbenkuck.keller.pipe.Pipeline;
-import de.thorbenkuck.keller.pipe.QueuedPipeline;
+import com.github.thorbenkuck.keller.pipe.Pipeline;
+import com.github.thorbenkuck.keller.pipe.QueuedPipeline;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
