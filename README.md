@@ -9,6 +9,9 @@ This is an base-framework which provides a number of handy functions.
 
 ---
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/Keller/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.thorbenkuck/Keller)    
+
+
 Maven:
 
 ```
