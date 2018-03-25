@@ -88,16 +88,16 @@ public class JavaFXStageControllerExample extends Application {
 		}
 	}
 
-	private class ExampleView extends CustomStage implements View {
+	private class ExampleView extends CustomStage implements View<ExamplePresenter> {
 
-		private Presenter<ExampleView> presenter;
+		private ExamplePresenter presenter;
 
-		private ExampleView(final Presenter<ExampleView> presenter) {
+		private ExampleView(final ExamplePresenter presenter) {
 			this.presenter = presenter;
 		}
 
 		@Override
-		public Presenter getPresenter() {
+		public ExamplePresenter getPresenter() {
 			return presenter;
 		}
 

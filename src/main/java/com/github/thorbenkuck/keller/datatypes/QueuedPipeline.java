@@ -1,13 +1,12 @@
 package com.github.thorbenkuck.keller.datatypes;
 
-import com.github.thorbenkuck.keller.pipe.AbstractPipeline;
-import com.github.thorbenkuck.keller.pipe.PipelineCondition;
-import com.github.thorbenkuck.keller.pipe.PipelineConditionImpl;
-import com.github.thorbenkuck.keller.pipe.PipelineElement;
+import com.github.thorbenkuck.keller.pipe.*;
+import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement<T>>> {
 
@@ -15,9 +14,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		super(new LinkedList<>());
 	}
 
-	@Override
-	public PipelineCondition<T> addLast(Consumer<T> consumer) {
-		PipelineElement<T> element = createPipelineElement(consumer);
+	private void $addLast(PipelineElement<T> element) {
 		try {
 			assertIsOpen();
 			lock();
@@ -25,12 +22,9 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		} finally {
 			unlock();
 		}
-		return new PipelineConditionImpl<>(element);
 	}
 
-	@Override
-	public PipelineCondition<T> addFirst(Consumer<T> consumer) {
-		PipelineElement<T> element = createPipelineElement(consumer);
+	private void $addFirst(PipelineElement<T> element) {
 		Queue<PipelineElement<T>> newCore = new LinkedList<>();
 		newCore.add(element);
 		Queue<PipelineElement<T>> core = getCore();
@@ -43,17 +37,57 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		} finally {
 			unlock();
 		}
-		return new PipelineConditionImpl<>(element);
+	}
+
+	private void $remove(PipelineElement<T> element) {
+		try {
+			assertIsOpen();
+			lock();
+			removePipelineElement(element);
+		} finally {
+			unlock();
+		}
+	}
+
+	@Override
+	public PipelineCondition<T> addLast(Consumer<T> consumer) {
+		Keller.parameterNotNull(consumer);
+		PipelineElement<T> element = createConsumerPipelineElement(consumer);
+		$addLast(element);
+		return createPipelineCondition(element);
+	}
+
+	@Override
+	public PipelineCondition<T> addLast(final Function<T, T> pipelineService) {
+		Keller.parameterNotNull(pipelineService);
+		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
+		$addLast(element);
+		return createPipelineCondition(element);
+	}
+
+	@Override
+	public PipelineCondition<T> addFirst(Consumer<T> consumer) {
+		Keller.parameterNotNull(consumer);
+		PipelineElement<T> element = createConsumerPipelineElement(consumer);
+		$addFirst(element);
+		return createPipelineCondition(element);
+	}
+
+	@Override
+	public PipelineCondition<T> addFirst(final Function<T, T> pipelineService) {
+		Keller.parameterNotNull(pipelineService);
+		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
+		$addFirst(element);
+		return createPipelineCondition(element);
 	}
 
 	@Override
 	public void remove(Consumer<T> consumer) {
-		try {
-			assertIsOpen();
-			lock();
-			removePipelineElement(createPipelineElement(consumer));
-		} finally {
-			unlock();
-		}
+		$remove(createConsumerPipelineElement(consumer));
+	}
+
+	@Override
+	public void remove(Function<T, T> function) {
+		$remove(createFunctionPipelineElement(function));
 	}
 }

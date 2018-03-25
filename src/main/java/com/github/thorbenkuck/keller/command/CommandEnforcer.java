@@ -63,7 +63,7 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 			running = true;
 			setUp();
 			synchronized (pipeline) {
-				pipeline.run(t);
+				pipeline.apply(t);
 			}
 			afterRun();
 		} catch (Exception e) {

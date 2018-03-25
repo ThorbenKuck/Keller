@@ -1,8 +1,8 @@
 package com.github.thorbenkuck.keller.mvp;
 
-public interface View extends Show {
+public interface View<T extends Presenter> extends Show {
 
-	Presenter getPresenter();
+	T getPresenter();
 
 	default void notifyOpen() {}
 

@@ -2,16 +2,20 @@ package com.github.thorbenkuck.keller.pipe;
 
 import java.util.function.Predicate;
 
-public class PipelineConditionImpl<T> implements PipelineCondition<T> {
-	private final PipelineElement<T> pipelineElement;
+class PipelineConditionImpl<T> implements PipelineCondition<T> {
+	private final APIPipelineElement<T> consumerPipelineElement;
 
-	public PipelineConditionImpl(PipelineElement<T> pipelineElement) {
-		this.pipelineElement = pipelineElement;
+	PipelineConditionImpl(PipelineElement<T> consumerPipelineElement) {
+		// We define the implementation
+		// We know the implementation
+		// So we can do this.
+		// All hail the implementation!
+		this.consumerPipelineElement = (APIPipelineElement<T>) consumerPipelineElement;
 	}
 
 	@Override
 	public PipelineChain<T> withRequirement(Predicate<T> predicate) {
-		pipelineElement.addCondition(predicate);
+		consumerPipelineElement.addCondition(predicate);
 		return new PipelineChainImpl<>(this);
 	}
 }

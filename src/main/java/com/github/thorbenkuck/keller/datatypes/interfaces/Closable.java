@@ -10,4 +10,15 @@ public interface Closable {
 
 	void assertIsOpen();
 
+	default void ifClosed(Runnable runnable) {
+		if(isClosed()) {
+			runnable.run();
+		}
+	}
+
+	default void ifOpen(Runnable runnable) {
+		if(!isClosed()) {
+			runnable.run();
+		}
+	}
 }

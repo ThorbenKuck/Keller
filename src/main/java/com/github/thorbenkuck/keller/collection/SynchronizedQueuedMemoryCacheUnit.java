@@ -3,33 +3,17 @@ package com.github.thorbenkuck.keller.collection;
 import java.io.Serializable;
 import java.util.*;
 
-/**
- * Die QueuedMemoryCacheUnit ist etwas wie ein resettable Stack / Queue. Eine interne Repräsentation der Elemente passiert auf 2 ebenen.
- * So kann über die Methode resetCache die QueuedMemoryCacheUnit "cloned" werden, ohne dass dies tatsächlich cloned werden muss.
- * <p>
- * Jedoch ist diese Klasse nicht 100%ig Thread-Safe. Zwar sind die Atribute volatile, aber die Methoden nicht synchronized.
- * Das hat den ganz einfachen Grund, dass die Performanz nicht leiden soll.
- * <p>
- * Man kann jedoch in der erbenden Klasse alle Methoden synchronized zu machen.
- *
- * @param <T> Der Objekt-Typ, welcher intern gespeichert werden soll.
- */
-public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializable {
+public class SynchronizedQueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializable {
 
-	protected Queue<T> cache;
-	protected Queue<T> memory;
-
-	public QueuedMemoryCacheUnit() {
-		cache = new LinkedList<>();
-		memory = new LinkedList<>();
-	}
+	private final Queue<T> cache = new LinkedList<>();
+	private final Queue<T> memory = new LinkedList<>();
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
 	public final void emptyCache() {
-		this.cache = new LinkedList<>();
+		this.cache.clear();
 	}
 
 	/**
@@ -37,7 +21,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final void emptyMemory() {
-		this.memory = new LinkedList<>();
+		this.memory.clear();
 	}
 
 	/**
@@ -45,7 +29,12 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final MemoryCacheUnit resetCache() {
-		this.cache = new LinkedList<>(memory);
+		synchronized (memory) {
+			synchronized (cache) {
+				cache.clear();
+				cache.addAll(memory);
+			}
+		}
 		return this;
 	}
 
@@ -54,7 +43,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public Collection<T> duplicateMemory() {
-		return new ArrayList<>(memory);
+		synchronized (memory) {
+			return new ArrayList<>(memory);
+		}
 	}
 
 	/**
@@ -62,7 +53,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final boolean containedInCache(T t) {
-		return cache.contains(t);
+		synchronized (cache) {
+			return cache.contains(t);
+		}
 	}
 
 	/**
@@ -70,7 +63,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final boolean containedInMemory(T t) {
-		return memory.contains(t);
+		synchronized (memory) {
+			return memory.contains(t);
+		}
 	}
 
 	/**
@@ -78,7 +73,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public int cacheSize() {
-		return cache.size();
+		synchronized (cache) {
+			return cache.size();
+		}
 	}
 
 	/**
@@ -86,7 +83,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public int size() {
-		return memory.size();
+		synchronized (memory) {
+			return memory.size();
+		}
 	}
 
 	/**
@@ -94,12 +93,16 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final void add(T t) {
-		memory.add(t);
+		synchronized (memory) {
+			memory.add(t);
+		}
 	}
 
 	@Override
 	public void addAll(final Collection<T> collection) {
-		memory.addAll(collection);
+		synchronized (memory) {
+			memory.addAll(collection);
+		}
 	}
 
 	/**
@@ -107,7 +110,7 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public Iterator<T> iterator() {
-		return new InnerIterator(cache);
+		return new SynchronizedInnerIterator(cache);
 	}
 
 	/**
@@ -115,19 +118,21 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final boolean hasNext() {
-		return cache.peek() != null;
+		synchronized (cache) {
+			return cache.peek() != null;
+		}
 	}
 
 	/**
 	 * This is the Iterator of this QueuedMemoryCacheUnit.
 	 * It takes a Queue, so that it can work on it.
 	 */
-	protected class InnerIterator implements Iterator<T> {
+	protected class SynchronizedInnerIterator implements Iterator<T> {
 
 		private final Queue<T> cache;
 		private T current;
 
-		private InnerIterator(final Queue<T> cache) {
+		private SynchronizedInnerIterator(final Queue<T> cache) {
 			this.cache = cache;
 		}
 
@@ -142,7 +147,9 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 		 */
 		@Override
 		public boolean hasNext() {
-			return cache.peek() != null;
+			synchronized (cache) {
+				return cache.peek() != null;
+			}
 		}
 
 		/**
@@ -150,12 +157,12 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 		 */
 		@Override
 		public T next() {
-			current = cache.poll();
+			synchronized (cache) {
+				current = cache.poll();
+			}
 			check();
 			return current;
 		}
-
-
 	}
 
 	/**
@@ -163,7 +170,15 @@ public class QueuedMemoryCacheUnit<T> implements MemoryCacheUnit<T>, Serializabl
 	 */
 	@Override
 	public final T next() {
-		return cache.remove();
+		T current;
+		synchronized (cache) {
+			current = cache.remove();
+		}
+
+		if (current == null) {
+			throw new NoSuchElementException();
+		}
+		return current;
 	}
 
 
