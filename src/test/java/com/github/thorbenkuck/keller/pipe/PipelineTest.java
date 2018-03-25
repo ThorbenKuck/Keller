@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller.pipe;
 
+import com.github.thorbenkuck.keller.TestObject;
 import com.github.thorbenkuck.keller.datatypes.QueuedPipeline;
 import org.junit.Test;
 
@@ -44,7 +45,7 @@ public class PipelineTest {
 		assertEquals(1, pipeline.size());
 	}
 
-	@Test
+	@Test(expected = IllegalArgumentException.class)
 	public void addLastNull() throws Exception {
 		// Arrange
 		Pipeline<TestHandle> pipeline = Pipeline.unifiedCreation();
@@ -53,7 +54,7 @@ public class PipelineTest {
 		pipeline.addLast((Consumer<TestHandle>) null);
 
 		// Assert
-		assertEquals(1, pipeline.size());
+		fail();
 	}
 
 	@Test
@@ -117,6 +118,43 @@ public class PipelineTest {
 		// Act
 
 		// Assert
+	}
+
+	@Test
+	public void addTest() {
+		Pipeline<TestObject> pipeline = new QueuedPipeline<>();
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() * 2));
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() + 1));
+
+		TestObject testObject = new TestObject();
+		pipeline.apply(testObject);
+
+		assertEquals(testObject.getValue(), 1);
+	}
+
+	@Test
+	public void addTestInverse() {
+		Pipeline<TestObject> pipeline = new QueuedPipeline<>();
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() + 1));
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() * 2));
+
+		TestObject testObject = new TestObject();
+		pipeline.apply(testObject);
+
+		assertEquals(testObject.getValue(), 2);
+	}
+
+	@Test
+	public void addTestWithAddFirst() {
+		Pipeline<TestObject> pipeline = new QueuedPipeline<>();
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() * 2));
+		pipeline.addLast((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() + 1));
+		pipeline.addFirst((Consumer<TestObject>) testObject -> testObject.setValue(testObject.getValue() + 1));
+
+		TestObject testObject = new TestObject();
+		pipeline.apply(testObject);
+
+		assertEquals(testObject.getValue(), 3);
 	}
 
 	private class TestHandle {

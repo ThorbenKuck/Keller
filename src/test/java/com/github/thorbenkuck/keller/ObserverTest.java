@@ -1,4 +1,4 @@
-package de.thorbenkuck.tests.keller;
+package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.datatypes.observers.AbstractGenericObservable;
 import com.github.thorbenkuck.keller.datatypes.observers.GenericObserver;

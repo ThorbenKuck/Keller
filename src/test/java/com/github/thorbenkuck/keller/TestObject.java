@@ -1,6 +1,6 @@
-package de.thorbenkuck.tests.keller;
+package com.github.thorbenkuck.keller;
 
-class TestObject {
+public class TestObject {
 
 	private int value;
 
@@ -12,11 +12,11 @@ class TestObject {
 		this.value = value;
 	}
 
-	int getValue() {
+	public int getValue() {
 		return value;
 	}
 
-	void setValue(int i) {
+	public void setValue(int i) {
 		value = i;
 	}
 

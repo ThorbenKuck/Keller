@@ -1,4 +1,4 @@
-package de.thorbenkuck.tests.keller;
+package com.github.thorbenkuck.keller;
 
 public class TestValue {
 

@@ -17,7 +17,7 @@
         <connection>scm:git:git@github.com:ThorbenKuck/Keller.git</connection>
         <url>scm:git:git@github.com:ThorbenKuck/Keller.git</url>
         <developerConnection>scm:git:git@github.com:ThorbenKuck/Keller.git</developerConnection>
-        <tag>Keller</tag>
+        <tag>Keller-1.4</tag>
     </scm>
 
     <developers>
