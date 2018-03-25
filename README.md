@@ -18,14 +18,14 @@ Maven:
 <dependency>
     <groupId>com.github.thorbenkuck</groupId>
     <artifactId>Keller</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.3</version>
 </dependency>
 ```
 
 gradle
 ```
 dependencies {
-    compile group: 'com.github.thorbenkuck', name: 'Keller', version: '1.0-SNAPSHOT'
+    compile group: 'com.github.thorbenkuck', name: 'Keller', version: '1.3'
 }
 ```
 
