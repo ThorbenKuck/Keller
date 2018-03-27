@@ -1,6 +1,7 @@
 package com.github.thorbenkuck.keller.pipe;
 
 import com.github.thorbenkuck.keller.TestObject;
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.datatypes.QueuedPipeline;
 import org.junit.Test;
 
@@ -8,6 +9,7 @@ import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
 
+@Testing(Pipeline.class)
 public class PipelineTest {
 	@Test
 	public void unifiedCreation() throws Exception {

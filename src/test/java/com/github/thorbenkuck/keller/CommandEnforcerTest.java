@@ -1,11 +1,13 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.command.CommandEnforcer;
 import com.github.thorbenkuck.keller.command.Enforcer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
+@Testing({Enforcer.class, CommandEnforcer.class})
 public class CommandEnforcerTest {
 
 	@Test

@@ -1,14 +1,14 @@
 package com.github.thorbenkuck.keller.datatypes.observers;
 
-public interface ObservableValue<T> {
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+
+public interface ObservableValue<T> extends Value<T> {
 
 	static <T> ObservableValue<T> of(T t) {
 		return new GenericObservableValue<>(t);
 	}
 
 	void set(T t);
-
-	T get();
 
 	void addObserver(ValueListener<T> genericObserver);
 

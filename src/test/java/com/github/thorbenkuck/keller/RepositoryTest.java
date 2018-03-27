@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.repository.Repository;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -9,6 +10,7 @@ import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 
+@Testing(Repository.class)
 public class RepositoryTest {
 
 	@Ignore

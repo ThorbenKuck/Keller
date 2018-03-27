@@ -1,17 +1,20 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.mvp.*;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import org.junit.Test;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+@Testing(ViewController.class)
 public class JavaFXStageControllerExample extends Application {
 
 	private final ViewController controller = new AsynchronousViewController(this::runOnFXThread);

@@ -1,9 +1,12 @@
 package com.github.thorbenkuck.keller.math;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
+import com.github.thorbenkuck.keller.math.matrix.Matrix;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
 
+@Testing(Matrix.class)
 public class MatrixTest {
 	@Test
 	public void create() throws Exception {

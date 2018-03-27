@@ -1,10 +1,12 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.datatypes.observers.ObservableValue;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
+@Testing(ObservableValue.class)
 public class ObservableValueTest {
 
 	@Test

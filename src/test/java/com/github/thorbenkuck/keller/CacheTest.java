@@ -1,11 +1,13 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.cache.*;
 import org.junit.Test;
 
 import static junit.framework.TestCase.assertFalse;
 import static junit.framework.TestCase.assertTrue;
 
+@Testing(Cache.class)
 public class CacheTest {
 
 	@Test

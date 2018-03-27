@@ -13,22 +13,22 @@ package com.github.thorbenkuck.keller.datatypes.interfaces;
  * </p>
  */
 @FunctionalInterface
-public interface BiGenericQueuedAction<T> {
+public interface BiGenericQueuedAction<T, U> {
 
 	/**
 	 * Diese Methode beschreibt, was vor der Aktion passieren soll.
 	 */
-	default void doBefore(T t) {
+	default void doBefore(T t, U u) {
 	}
 
 	/**
 	 * Diese Methode beschreibt, was während der Aktion passieren soll.
 	 */
-	void doAction(T t);
+	void doAction(T t, U u);
 
 	/**
 	 * Diese Methode beschreibt, was nache der Aktion passieren soll.
 	 */
-	default void doAfter(T t) {
+	default void doAfter(T t, U u) {
 	}
 }
