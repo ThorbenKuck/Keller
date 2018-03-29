@@ -2,6 +2,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
@@ -15,7 +16,9 @@ public class ReactiveNIONetworkWorker {
 	private final Sender sender = new Sender();
 	private int bufferSize = 256;
 	private SocketChannel channel;
-	private ReceivedListener receivedListener = new ReceivedListener();
+	private final ReceivedListener receivedListener = new ReceivedListener();
+	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
+	private final Deserializer deSerializer = new Deserializer();
 
 	public void initialize(final String string, int port) throws IOException {
 		initialize(new InetSocketAddress(string, port));
@@ -25,7 +28,8 @@ public class ReactiveNIONetworkWorker {
 		channel = SocketChannel.open(inetSocketAddress);
 		channel.configureBlocking(false);
 		final Selector selector = Selector.open();
-		executorService.submit(new Worker(selector, receivedListener, this::getBufferSize));
+		channel.register(selector, SelectionKey.OP_READ, null);
+		executorService.submit(new Worker(selector, disconnectedListener, receivedListener, this::getBufferSize, this::getExecutorService));
 	}
 
 	private int getBufferSize() {
@@ -59,5 +63,9 @@ public class ReactiveNIONetworkWorker {
 	public void close() throws IOException {
 		executorService.shutdownNow();
 		channel.close();
+	}
+
+	public void setDeSerializer(Function<String, Object> deSerializer) {
+		this.deSerializer.setDeserializer(deSerializer);
 	}
 }

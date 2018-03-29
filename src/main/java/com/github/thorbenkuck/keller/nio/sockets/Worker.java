@@ -6,19 +6,28 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 public class Worker implements Runnable {
 
 	private final Selector selector;
+	private final DisconnectedListener disconnectedListener;
 	private final ReceivedListener receivedListener;
 	private final Supplier<Integer> byteBuffer;
+	private final AtomicBoolean running = new AtomicBoolean(false);
+	private final Supplier<ExecutorService> executorService;
 
-	public Worker(Selector selector, ReceivedListener receivedListener, Supplier<Integer> byteBuffer) {
+	public Worker(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Supplier<Integer> byteBuffer, Supplier<ExecutorService> executorService) {
 		this.selector = selector;
+		this.disconnectedListener = disconnectedListener;
 		this.receivedListener = receivedListener;
 		this.byteBuffer = byteBuffer;
+		this.executorService = executorService;
 	}
 
 	/**
@@ -49,8 +58,10 @@ public class Worker implements Runnable {
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
 			if (!key.isValid()) {
-				// TODO: Disconnected here, handle in listener
-				continue;
+				SocketChannel channel = (SocketChannel) key.channel();
+				running.set(false);
+				disconnectedListener.handle(channel);
+				break;
 			}
 
 			if (key.isReadable()) {
@@ -67,5 +78,18 @@ public class Worker implements Runnable {
 			}
 			iterator.remove();
 		}
+	}
+
+	private void trigger(final Queue<Message> objects) {
+		if(objects.isEmpty()) {
+			return;
+		}
+		final Queue<Message> toWorkOn = new LinkedList<>(objects);
+		executorService.get().submit(() -> {
+			while(toWorkOn.peek() != null) {
+				Message message = toWorkOn.poll();
+				receivedListener.handle(message);
+			}
+		});
 	}
 }

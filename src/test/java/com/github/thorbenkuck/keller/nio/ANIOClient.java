@@ -1,6 +1,5 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.Deserializer;
 import com.github.thorbenkuck.keller.nio.sockets.ReactiveNIONetworkWorker;
 
 import java.io.IOException;
@@ -10,13 +9,10 @@ public class ANIOClient {
 
 	public static void main(String[] args) {
 		ReactiveNIONetworkWorker worker = new ReactiveNIONetworkWorker();
-		Deserializer deserializer = new Deserializer();
-		deserializer.setDeserializer(new JavaDeserializer());
+		worker.setSerializer(new JavaSerializer());
+		worker.setDeSerializer(new JavaDeserializer());
 
-		worker.addReceivedListener(message -> {
-			Object content = deserializer.getDeSerializedContent(message);
-			System.out.println(content);
-		});
+		worker.addReceivedListener(message -> System.out.println(message.getContent()));
 
 		try {
 			worker.initialize("localhost", 4444);

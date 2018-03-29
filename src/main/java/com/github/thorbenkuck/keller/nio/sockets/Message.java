@@ -4,19 +4,19 @@ import java.nio.channels.SocketChannel;
 
 public final class Message {
 
-	private final String content;
+	private final Object content;
 	private final SocketChannel channel;
 
-	public Message(String content, SocketChannel channel) {
+	public Message(Object content, SocketChannel channel) {
 		this.content = content;
 		this.channel = channel;
 	}
 
-	public String getContent() {
+	public final Object getContent() {
 		return content;
 	}
 
-	public SocketChannel getChannel() {
+	public final SocketChannel getChannel() {
 		return channel;
 	}
 }

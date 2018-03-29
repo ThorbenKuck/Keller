@@ -14,6 +14,7 @@ public class Sender {
 	}
 
 	public void send(final Object object, final SocketChannel channel) throws IOException {
+		System.out.println("Sending " + object + " to " + channel.getRemoteAddress());
 		String toSend = serialize(object);
 		byte[] message = toSend.getBytes();
 		ByteBuffer buffer = ByteBuffer.wrap(message);

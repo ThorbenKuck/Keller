@@ -4,27 +4,35 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-public class Listener implements Runnable {
+class Listener implements Runnable {
 
 	private final Selector selector;
 	private final Supplier<ExecutorService> executorService;
 	private final ConnectedListener connectedListener;
 	private final Supplier<Integer> bufferSize;
-	private final ReceivedListener listener;
+	private final ReceivedListener receivedListener;
 	private final ServerSocketChannel serverSocketChannel;
+	private final DisconnectedListener disconnectedListener;
+	private final Deserializer deserializer;
+	private final AtomicBoolean running = new AtomicBoolean(false);
 
-	public Listener(Selector selector, ServerSocketChannel serverSocketChannel, ReceivedListener listener, ConnectedListener connectedListener,
-	                Supplier<ExecutorService> executorService, Supplier<Integer> bufferSize) {
+	Listener(Selector selector, ServerSocketChannel serverSocketChannel, ReceivedListener receivedListener, ConnectedListener connectedListener,
+	         DisconnectedListener disconnectedListener, Supplier<ExecutorService> executorService, Supplier<Integer> bufferSize, Deserializer deserializer) {
 		this.selector = selector;
+		this.disconnectedListener = disconnectedListener;
 		this.executorService = executorService;
 		this.serverSocketChannel = serverSocketChannel;
 		this.connectedListener = connectedListener;
 		this.bufferSize = bufferSize;
-		this.listener = listener;
+		this.receivedListener = receivedListener;
+		this.deserializer = deserializer;
 	}
 
 	public void run() {
@@ -32,10 +40,11 @@ public class Listener implements Runnable {
 			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT, null);
 		} catch (ClosedChannelException e) {
 			e.printStackTrace();
+			return;
 		}
-		while (true) {
+		running.set(true);
+		while (running.get()) {
 			try {
-				System.out.println("Awaiting Selector ...");
 				selector.select();
 				handle(selector.selectedKeys());
 			} catch (IOException e) {
@@ -46,13 +55,9 @@ public class Listener implements Runnable {
 
 	private void handle(Set<SelectionKey> keys) {
 		Iterator<SelectionKey> iterator = keys.iterator();
+		final Queue<Message> received = new LinkedList<>();
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
-			if (!key.isValid()) {
-				System.out.println("Found invalid key..");
-				// TODO: Disconnected here, handle in listener
-				continue;
-			}
 
 			if (key.isAcceptable()) {
 				System.out.println("New Connection detected ..");
@@ -66,7 +71,11 @@ public class Listener implements Runnable {
 				}
 			} else if (key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
-				System.out.println("Message received: ");
+				if(!sender.isConnected()) {
+					SocketChannel channel = (SocketChannel) key.channel();
+					disconnectedListener.handle(channel);
+					continue;
+				}
 				ByteBuffer buffer = ByteBuffer.allocate(bufferSize.get());
 				try {
 					sender.read(buffer);
@@ -75,9 +84,24 @@ public class Listener implements Runnable {
 					continue;
 				}
 				String result = new String(buffer.array()).trim();
-				listener.handle(new Message(result, sender));
+				received.add(new Message(deserializer.getDeSerializedContent(result), sender));
 			}
 			iterator.remove();
 		}
+
+		trigger(received);
+	}
+
+	private void trigger(final Queue<Message> objects) {
+		if(objects.isEmpty()) {
+			return;
+		}
+		final Queue<Message> toWorkOn = new LinkedList<>(objects);
+		executorService.get().submit(() -> {
+			while(toWorkOn.peek() != null) {
+				Message message = toWorkOn.poll();
+				receivedListener.handle(message);
+			}
+		});
 	}
 }

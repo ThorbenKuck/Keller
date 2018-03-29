@@ -4,10 +4,10 @@ import java.util.function.Function;
 
 public class Deserializer {
 
-	private Function<String, Object> deserializer;
+	private Function<String, Object> deserializer = string -> string;
 
-	public Object getDeSerializedContent(Message message) {
-		return deserializer.apply(message.getContent());
+	public Object getDeSerializedContent(String message) {
+		return deserializer.apply(message);
 	}
 
 	public void setDeserializer(Function<String, Object> function) {
