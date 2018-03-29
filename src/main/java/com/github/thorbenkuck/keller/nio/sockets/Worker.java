@@ -74,7 +74,7 @@ public class Worker implements Runnable {
 					continue;
 				}
 				String result = new String(buffer.array()).trim();
-				receivedListener.handle(new Message(result, sender));
+				receivedListener.handle(new MessageImpl(result, sender));
 			}
 			iterator.remove();
 		}

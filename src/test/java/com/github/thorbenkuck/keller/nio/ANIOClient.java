@@ -1,6 +1,7 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.ReactiveNIONetworkWorker;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkWorker;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkWorkerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -8,11 +9,11 @@ import java.util.ArrayList;
 public class ANIOClient {
 
 	public static void main(String[] args) {
-		ReactiveNIONetworkWorker worker = new ReactiveNIONetworkWorker();
-		worker.setSerializer(new JavaSerializer());
-		worker.setDeSerializer(new JavaDeserializer());
-
-		worker.addReceivedListener(message -> System.out.println(message.getContent()));
+		NetworkWorker worker = NetworkWorkerFactory.create()
+				.serializer(new JavaSerializer())
+				.deserializer(new JavaDeserializer())
+				.ifObjectArrives(message -> System.out.println(message.getContent()))
+				.build();
 
 		try {
 			worker.initialize("localhost", 4444);

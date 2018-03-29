@@ -1,14 +1,17 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.ReactiveNIONetworkListener;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkListener;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkListenerFactory;
 
 import java.io.IOException;
 
 public class ANIOServer {
 
 	public static void main(String[] args) {
-		ReactiveNIONetworkListener listener = new ReactiveNIONetworkListener();
-		listener.setDeserializer(new JavaDeserializer());
+		NetworkListener listener = NetworkListenerFactory.create()
+				.serializer(new JavaSerializer())
+				.deserializer(new JavaDeserializer())
+				.build();
 
 		try {
 			listener.addConnectedListener(socketChannel -> {

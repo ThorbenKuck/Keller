@@ -5,7 +5,7 @@ import com.github.thorbenkuck.keller.pipe.Pipeline;
 import java.nio.channels.SocketChannel;
 import java.util.function.Consumer;
 
-public class DisconnectedListener {
+class DisconnectedListener {
 
 	private final Pipeline<SocketChannel> messagePipeline = Pipeline.unifiedCreation();
 

@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ReactiveNIONetworkWorker {
+class NetworkWorkerImpl implements NetworkWorker {
 
 	private ExecutorService executorService = Executors.newCachedThreadPool();
 	private final Sender sender = new Sender();
@@ -20,10 +20,12 @@ public class ReactiveNIONetworkWorker {
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Deserializer deSerializer = new Deserializer();
 
+	@Override
 	public void initialize(final String string, int port) throws IOException {
 		initialize(new InetSocketAddress(string, port));
 	}
 
+	@Override
 	public void initialize(final InetSocketAddress inetSocketAddress) throws IOException {
 		channel = SocketChannel.open(inetSocketAddress);
 		channel.configureBlocking(false);
@@ -34,10 +36,6 @@ public class ReactiveNIONetworkWorker {
 
 	private int getBufferSize() {
 		return bufferSize;
-	}
-
-	public void send(Object object) throws IOException {
-		sender.send(object, channel);
 	}
 
 	private ExecutorService getExecutorService() {
@@ -52,19 +50,28 @@ public class ReactiveNIONetworkWorker {
 		this.bufferSize = bufferSize;
 	}
 
+	@Override
+	public void send(Object object) throws IOException {
+		sender.send(object, channel);
+	}
+
+	@Override
 	public void addReceivedListener(Consumer<Message> consumer) {
 		this.receivedListener.add(consumer);
 	}
 
+	@Override
 	public void setSerializer(Function<Object, String> function) {
 		sender.setSerializer(function);
 	}
 
+	@Override
 	public void close() throws IOException {
 		executorService.shutdownNow();
 		channel.close();
 	}
 
+	@Override
 	public void setDeSerializer(Function<String, Object> deSerializer) {
 		this.deSerializer.setDeserializer(deSerializer);
 	}

@@ -84,7 +84,7 @@ class Listener implements Runnable {
 					continue;
 				}
 				String result = new String(buffer.array()).trim();
-				received.add(new Message(deserializer.getDeSerializedContent(result), sender));
+				received.add(new MessageImpl(deserializer.getDeSerializedContent(result), sender));
 			}
 			iterator.remove();
 		}
