@@ -7,12 +7,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class LocalNetworkWorkerFactory implements NetworkWorkerFactory {
+class LocalNetworkNodeFactory implements NetworkNodeFactory {
 
-	private NetworkWorkerImpl networkWorker = new NetworkWorkerImpl();
+	private NetworkNodeImpl networkWorker = new NetworkNodeImpl();
 
 	@Override
-	public NetworkWorkerFactory ifObjectArrives(Consumer<Message> consumer) {
+	public NetworkNodeFactory ifObjectArrives(Consumer<Message> consumer) {
 		networkWorker.addReceivedListener(consumer);
 
 		return this;
@@ -20,7 +20,7 @@ class LocalNetworkWorkerFactory implements NetworkWorkerFactory {
 
 	@Experimental
 	@Override
-	public NetworkWorkerFactory onDisconnect(Consumer<SocketChannel> consumer) {
+	public NetworkNodeFactory onDisconnect(Consumer<SocketChannel> consumer) {
 		// There is currently
 		// No way, to detect
 		// this.. Who the hell
@@ -29,35 +29,35 @@ class LocalNetworkWorkerFactory implements NetworkWorkerFactory {
 	}
 
 	@Override
-	public NetworkWorkerFactory setExecutorService(ExecutorService executorService) {
+	public NetworkNodeFactory setExecutorService(ExecutorService executorService) {
 		networkWorker.setExecutorService(executorService);
 
 		return this;
 	}
 
 	@Override
-	public NetworkWorkerFactory setBufferSize(int bufferSize) {
+	public NetworkNodeFactory setBufferSize(int bufferSize) {
 		networkWorker.setBufferSize(bufferSize);
 
 		return this;
 	}
 
 	@Override
-	public NetworkWorkerFactory serializer(Function<Object, String> function) {
+	public NetworkNodeFactory serializer(Function<Object, String> function) {
 		networkWorker.setSerializer(function);
 
 		return this;
 	}
 
 	@Override
-	public NetworkWorkerFactory deserializer(Function<String, Object> function) {
+	public NetworkNodeFactory deserializer(Function<String, Object> function) {
 		networkWorker.setDeSerializer(function);
 
 		return this;
 	}
 
 	@Override
-	public NetworkWorker build() {
+	public NetworkNode build() {
 		return networkWorker;
 	}
 }

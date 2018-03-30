@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NetworkWorkerImpl implements NetworkWorker {
+class NetworkNodeImpl implements NetworkNode {
 
 	private ExecutorService executorService = Executors.newCachedThreadPool();
 	private final Sender sender = new Sender();
@@ -30,8 +30,7 @@ class NetworkWorkerImpl implements NetworkWorker {
 		channel = SocketChannel.open(inetSocketAddress);
 		channel.configureBlocking(false);
 		final Selector selector = Selector.open();
-		channel.register(selector, SelectionKey.OP_READ, null);
-		executorService.submit(new Worker(selector, disconnectedListener, receivedListener, this::getBufferSize, this::getExecutorService));
+		channel.register(selector, SelectionKey.OP_READ, null);	executorService.submit(new Worker(selector, disconnectedListener, receivedListener, this::getBufferSize, this::getExecutorService));
 	}
 
 	private int getBufferSize() {

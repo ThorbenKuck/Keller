@@ -6,7 +6,7 @@ import java.nio.channels.SocketChannel;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface NetworkListener {
+public interface NetworkHub {
 	void initialize(int port) throws IOException;
 
 	void initialize(String string, int port) throws IOException;

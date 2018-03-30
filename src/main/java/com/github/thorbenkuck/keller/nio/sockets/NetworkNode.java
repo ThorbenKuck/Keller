@@ -5,7 +5,7 @@ import java.net.InetSocketAddress;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface NetworkWorker {
+public interface NetworkNode {
 	void initialize(String string, int port) throws IOException;
 
 	void initialize(InetSocketAddress inetSocketAddress) throws IOException;

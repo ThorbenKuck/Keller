@@ -1,7 +1,7 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.NetworkWorker;
-import com.github.thorbenkuck.keller.nio.sockets.NetworkWorkerFactory;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkNode;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkNodeFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -9,14 +9,14 @@ import java.util.ArrayList;
 public class ANIOClient {
 
 	public static void main(String[] args) {
-		NetworkWorker worker = NetworkWorkerFactory.create()
+		NetworkNode node = NetworkNodeFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
 				.ifObjectArrives(message -> System.out.println(message.getContent()))
 				.build();
 
 		try {
-			worker.initialize("localhost", 4444);
+			node.initialize("localhost", 4444);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -34,7 +34,7 @@ public class ANIOClient {
 
 			log("Sending " + companyName + " .. ");
 			try {
-				worker.send(new TestObject(companyName));
+				node.send(new TestObject(companyName));
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -49,7 +49,7 @@ public class ANIOClient {
 
 		System.out.println("Closing ..");
 		try {
-			worker.close();
+			node.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

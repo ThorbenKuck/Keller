@@ -1,20 +1,20 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.NetworkListener;
-import com.github.thorbenkuck.keller.nio.sockets.NetworkListenerFactory;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkHub;
+import com.github.thorbenkuck.keller.nio.sockets.NetworkHubFactory;
 
 import java.io.IOException;
 
 public class ANIOServer {
 
 	public static void main(String[] args) {
-		NetworkListener listener = NetworkListenerFactory.create()
+		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
 				.build();
 
 		try {
-			listener.addConnectedListener(socketChannel -> {
+			hub.addConnectedListener(socketChannel -> {
 				try {
 					System.out.println("Connected: " + socketChannel.getLocalAddress());
 				} catch (IOException e) {
@@ -22,21 +22,21 @@ public class ANIOServer {
 				}
 			});
 
-			listener.addReceivedListener(message -> {
+			hub.addReceivedListener(message -> {
 				try {
 					Object toSendBack = message.getContent();
 					System.out.println("Sending: " + toSendBack);
-					listener.send(toSendBack, message.getChannel());
+					hub.send(toSendBack, message.getChannel());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			});
 
-			listener.addReceivedListener(message -> System.out.println(message.getContent()));
+			hub.addReceivedListener(message -> System.out.println(message.getContent()));
 
-			listener.addDisconnectedListener(System.out::println);
+			hub.addDisconnectedListener(System.out::println);
 
-			listener.initialize(4444);
+			hub.initialize(4444);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

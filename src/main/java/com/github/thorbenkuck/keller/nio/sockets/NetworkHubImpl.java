@@ -10,7 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NetworkListenerImpl implements NetworkListener {
+class NetworkHubImpl implements NetworkHub {
 
 	private final ConnectedListener connectedListener = new ConnectedListener();
 	private final ReceivedListener receivedListener = new ReceivedListener();
