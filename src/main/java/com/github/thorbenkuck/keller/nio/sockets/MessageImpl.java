@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
+import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
 final class MessageImpl implements Message {
@@ -20,5 +21,17 @@ final class MessageImpl implements Message {
 	@Override
 	public final SocketChannel getChannel() {
 		return channel;
+	}
+
+	@Override
+	public String toString() {
+		String address;
+		try {
+			address = channel.getLocalAddress().toString();
+		} catch (IOException e) {
+			address = "UNKNOWN";
+		}
+
+		return "[" + address + "]: " + content;
 	}
 }

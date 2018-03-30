@@ -24,6 +24,8 @@ public interface NetworkHubFactory {
 
 	NetworkHubFactory setBufferSize(int bufferSize);
 
+	NetworkHubFactory workloadPerSelector(int workload);
+
 	NetworkHubFactory serializer(Function<Object, String> function);
 
 	NetworkHubFactory deserializer(Function<String, Object> function);

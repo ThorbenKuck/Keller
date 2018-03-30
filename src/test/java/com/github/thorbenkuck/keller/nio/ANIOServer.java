@@ -13,6 +13,7 @@ public class ANIOServer {
 		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
+				.workloadPerSelector(1)
 				.build();
 
 		try {
@@ -27,14 +28,11 @@ public class ANIOServer {
 			hub.addReceivedListener(message -> {
 				try {
 					Object toSendBack = message.getContent();
-					System.out.println("Sending: " + toSendBack);
 					hub.send(toSendBack, message.getChannel());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			});
-
-			hub.addReceivedListener(message -> System.out.println("Received: " + message.getContent()));
 
 			hub.addDisconnectedListener(channel -> {
 				try {

@@ -16,6 +16,8 @@ class NetworkHubImpl implements NetworkHub {
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Sender sender = new Sender();
 	private final Deserializer deserializer = new Deserializer();
+	private final WorkloadDispenser workloadDispenser = new WorkloadDispenser(disconnectedListener, receivedListener, deserializer);
+	private NewConnectionListener connectionListener;
 	private Selector selector;
 	private ExecutorService executorService = Executors.newCachedThreadPool();
 	private int bufferSize = 256;
@@ -33,19 +35,23 @@ class NetworkHubImpl implements NetworkHub {
 
 	@Override
 	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
+		workloadDispenser.setBufferSize(this::getBufferSize);
+		workloadDispenser.setExecutorServiceSupplier(this::getExecutorService);
 		channel = ServerSocketChannel.open();
 		channel.configureBlocking(false);
 		channel.bind(inetSocketAddress);
 		selector = Selector.open();
+		channel.register(selector, SelectionKey.OP_ACCEPT, null);
 		connectedListener.addFirst(connected -> {
 			try {
-				connected.register(selector, SelectionKey.OP_READ);
-			} catch (ClosedChannelException e) {
-				throw new IllegalStateException(e);
+				workloadDispenser.appeal(connected);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		});
-		final Listener listener = new Listener(selector, channel, receivedListener, connectedListener, disconnectedListener, this::getExecutorService, this::getBufferSize, deserializer);
-		executorService.submit(listener);
+		disconnectedListener.add(workloadDispenser::remove);
+		connectionListener = new NewConnectionListener(selector, connectedListener, channel);
+		executorService.submit(connectionListener);
 	}
 
 	private int getBufferSize() {
@@ -62,6 +68,10 @@ class NetworkHubImpl implements NetworkHub {
 
 	void setBufferSize(final int bufferSize) {
 		this.bufferSize = bufferSize;
+	}
+
+	void setMaxWorkloadPerSelector(final int workload) {
+		workloadDispenser.setMaxWorkload(workload);
 	}
 
 	@Override
@@ -98,6 +108,7 @@ class NetworkHubImpl implements NetworkHub {
 	public void close() throws IOException {
 		System.out.println("Close requested");
 		executorService.shutdown();
+		connectionListener.stop();
 		selector.wakeup();
 		try {
 			executorService.awaitTermination(500, TimeUnit.MILLISECONDS);

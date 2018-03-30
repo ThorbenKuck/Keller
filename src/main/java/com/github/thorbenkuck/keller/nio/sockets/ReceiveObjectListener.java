@@ -1,8 +1,9 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -11,67 +12,70 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-class Listener implements Runnable {
+public class ReceiveObjectListener implements Runnable {
 
 	private final Selector selector;
 	private final Supplier<ExecutorService> executorService;
-	private final ConnectedListener connectedListener;
 	private final Supplier<Integer> bufferSize;
 	private final ReceivedListener receivedListener;
-	private final ServerSocketChannel serverSocketChannel;
 	private final DisconnectedListener disconnectedListener;
 	private final Deserializer deserializer;
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private final ReceivedBytesHandler receivedBytesHandler = new ReceivedBytesHandler();
 
-	Listener(Selector selector, ServerSocketChannel serverSocketChannel, ReceivedListener receivedListener, ConnectedListener connectedListener,
-	         DisconnectedListener disconnectedListener, Supplier<ExecutorService> executorService, Supplier<Integer> bufferSize, Deserializer deserializer) {
+	public ReceiveObjectListener(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> bufferSize, Supplier<ExecutorService> executorService) {
 		this.selector = selector;
-		this.disconnectedListener = disconnectedListener;
 		this.executorService = executorService;
-		this.serverSocketChannel = serverSocketChannel;
-		this.connectedListener = connectedListener;
 		this.bufferSize = bufferSize;
 		this.receivedListener = receivedListener;
+		this.disconnectedListener = disconnectedListener;
 		this.deserializer = deserializer;
 	}
 
+	/**
+	 * When an object implementing interface <code>Runnable</code> is used
+	 * to create a thread, starting the thread causes the object's
+	 * <code>run</code> method to be called in that separately executing
+	 * thread.
+	 * <p>
+	 * The general contract of the method <code>run</code> is that it may
+	 * take any action whatsoever.
+	 *
+	 * @see Thread#run()
+	 */
+	@Override
 	public void run() {
-		try {
-			serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT, null);
-		} catch (ClosedChannelException e) {
-			e.printStackTrace();
-			return;
-		}
 		running.set(true);
-		while (running.get()) {
-			try {
-				selector.select();
-				handle(selector.selectedKeys());
-			} catch (IOException e) {
-				running.set(false);
-				e.printStackTrace(System.out);
+		try {
+			while (running.get()) {
+				try {
+					System.out.println("Awaiting received objects");
+					selector.select();
+					handle(selector.selectedKeys());
+				} catch (IOException e) {
+					e.printStackTrace(System.out);
+					stop();
+				}
 			}
+		} catch (Throwable throwable) {
+			throwable.printStackTrace(System.out);
 		}
-		System.out.println("Listener finished.");
-		System.out.println("Selector open: " + selector.isOpen());
+		System.out.println("Receive Listener disconnected");
 	}
 
-	private void handle(Set<SelectionKey> keys) {
-		Iterator<SelectionKey> iterator = keys.iterator();
+	private void handle(Set<SelectionKey> selectionKeys) {
+		Iterator<SelectionKey> iterator = selectionKeys.iterator();
 		final Queue<Message> received = new LinkedList<>();
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
+			System.out.println("Handling readable: " + key.isReadable());
+			if (!key.isValid()) {
+				SocketChannel channel = (SocketChannel) key.channel();
+				handleDisconnected(channel);
+				break;
+			}
 
-			if (key.isAcceptable()) {
-				try {
-					final SocketChannel connected = serverSocketChannel.accept();
-					connected.configureBlocking(false);
-					connectedListener.handle(connected);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			} else if (key.isReadable()) {
+			if (key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
 				receivedBytesHandler.handle(sender, this::handleDisconnected, bufferSize, deserializer, received);
 			}
@@ -85,7 +89,6 @@ class Listener implements Runnable {
 		disconnectedListener.handle(channel);
 		try {
 			channel.close();
-			channel.keyFor(selector).cancel();
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
@@ -102,5 +105,9 @@ class Listener implements Runnable {
 				receivedListener.handle(message);
 			}
 		});
+	}
+
+	public void stop() {
+		running.set(false);
 	}
 }

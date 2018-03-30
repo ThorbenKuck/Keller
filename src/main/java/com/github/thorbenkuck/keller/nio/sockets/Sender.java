@@ -19,8 +19,6 @@ public class Sender {
 		byte[] message = toSend.getBytes();
 		ByteBuffer buffer = ByteBuffer.wrap(message);
 		channel.write(buffer);
-
-		buffer.clear();
 	}
 
 	public void setSerializer(Function<Object, String> serializer) {

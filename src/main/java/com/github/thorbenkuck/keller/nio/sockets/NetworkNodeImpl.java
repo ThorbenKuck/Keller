@@ -21,7 +21,7 @@ class NetworkNodeImpl implements NetworkNode {
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Deserializer deSerializer = new Deserializer();
 	private Selector selector;
-	private Worker worker;
+	private ReceiveObjectListener worker;
 
 	@Override
 	public void open(final String string, int port) throws IOException {
@@ -34,8 +34,17 @@ class NetworkNodeImpl implements NetworkNode {
 		channel.configureBlocking(false);
 		selector = Selector.open();
 		channel.register(selector, SelectionKey.OP_READ, null);
-		worker = new Worker(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService);
+		disconnectedListener.addFirst(this::handleDisconnect);
+		worker = new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService);
 		executorService.submit(worker);
+	}
+
+	private void handleDisconnect(SocketChannel channel) {
+		try {
+			selector.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private int getBufferSize() {

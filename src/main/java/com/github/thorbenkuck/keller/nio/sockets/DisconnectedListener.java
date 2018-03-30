@@ -18,6 +18,10 @@ class DisconnectedListener {
 	}
 
 	public void add(Consumer<SocketChannel> consumer) {
+		messagePipeline.addLast(consumer);
+	}
+
+	public void addFirst(Consumer<SocketChannel> consumer) {
 		messagePipeline.addFirst(consumer);
 	}
 }
