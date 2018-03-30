@@ -14,7 +14,11 @@ class ConnectedListener {
 	}
 
 	public void add(Consumer<SocketChannel> channelConsumer) {
-		connectedPipeline.addFirst(channelConsumer);
+		connectedPipeline.addLast(channelConsumer);
+	}
+
+	public void addFirst(Consumer<SocketChannel> channelConsumer) {
+		connectedPipeline.addLast(channelConsumer);
 	}
 
 }

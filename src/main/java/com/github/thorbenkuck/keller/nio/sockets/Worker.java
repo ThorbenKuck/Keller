@@ -5,15 +5,13 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
-public class Worker implements Runnable {
+class Worker implements Runnable {
 
 	private final Selector selector;
 	private final DisconnectedListener disconnectedListener;
@@ -21,13 +19,16 @@ public class Worker implements Runnable {
 	private final Supplier<Integer> byteBuffer;
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private final Supplier<ExecutorService> executorService;
+	private final Deserializer deserializer;
+	private final ReceivedBytesHandler receivedBytesHandler = new ReceivedBytesHandler();
 
-	public Worker(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Supplier<Integer> byteBuffer, Supplier<ExecutorService> executorService) {
+	Worker(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> byteBuffer, Supplier<ExecutorService> executorService) {
 		this.selector = selector;
 		this.disconnectedListener = disconnectedListener;
 		this.receivedListener = receivedListener;
 		this.byteBuffer = byteBuffer;
 		this.executorService = executorService;
+		this.deserializer = deserializer;
 	}
 
 	/**
@@ -43,40 +44,47 @@ public class Worker implements Runnable {
 	 */
 	@Override
 	public void run() {
-		while (true) {
+		running.set(true);
+		while (running.get()) {
 			try {
 				selector.select();
 				handle(selector.selectedKeys());
 			} catch (IOException e) {
-				e.printStackTrace();
+				e.printStackTrace(System.out);
+				stop();
 			}
 		}
 	}
 
 	private void handle(Set<SelectionKey> keys) {
 		Iterator<SelectionKey> iterator = keys.iterator();
+		final Queue<Message> received = new LinkedList<>();
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
 			if (!key.isValid()) {
 				SocketChannel channel = (SocketChannel) key.channel();
-				running.set(false);
-				disconnectedListener.handle(channel);
+				handleDisconnected(channel);
 				break;
 			}
 
 			if (key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
-				ByteBuffer buffer = ByteBuffer.allocate(byteBuffer.get());
-				try {
-					sender.read(buffer);
-				} catch (IOException e) {
-					e.printStackTrace();
-					continue;
-				}
-				String result = new String(buffer.array()).trim();
-				receivedListener.handle(new MessageImpl(result, sender));
+				receivedBytesHandler.handle(sender, this::handleDisconnected, byteBuffer, deserializer, received);
 			}
 			iterator.remove();
+		}
+
+		trigger(received);
+	}
+
+	private void handleDisconnected(SocketChannel hub) {
+		disconnectedListener.handle(hub);
+		try {
+			hub.close();
+			hub.keyFor(selector).cancel();
+			stop();
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
 	}
 
@@ -91,5 +99,9 @@ public class Worker implements Runnable {
 				receivedListener.handle(message);
 			}
 		});
+	}
+
+	public void stop() {
+		running.set(false);
 	}
 }

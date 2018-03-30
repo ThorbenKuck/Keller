@@ -7,6 +7,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -19,18 +20,22 @@ class NetworkNodeImpl implements NetworkNode {
 	private final ReceivedListener receivedListener = new ReceivedListener();
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Deserializer deSerializer = new Deserializer();
+	private Selector selector;
+	private Worker worker;
 
 	@Override
-	public void initialize(final String string, int port) throws IOException {
-		initialize(new InetSocketAddress(string, port));
+	public void open(final String string, int port) throws IOException {
+		open(new InetSocketAddress(string, port));
 	}
 
 	@Override
-	public void initialize(final InetSocketAddress inetSocketAddress) throws IOException {
+	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
 		channel = SocketChannel.open(inetSocketAddress);
 		channel.configureBlocking(false);
-		final Selector selector = Selector.open();
-		channel.register(selector, SelectionKey.OP_READ, null);	executorService.submit(new Worker(selector, disconnectedListener, receivedListener, this::getBufferSize, this::getExecutorService));
+		selector = Selector.open();
+		channel.register(selector, SelectionKey.OP_READ, null);
+		worker = new Worker(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService);
+		executorService.submit(worker);
 	}
 
 	private int getBufferSize() {
@@ -66,12 +71,30 @@ class NetworkNodeImpl implements NetworkNode {
 
 	@Override
 	public void close() throws IOException {
-		executorService.shutdownNow();
+		executorService.shutdown();
+		worker.stop();
+		selector.wakeup();
+		try {
+			executorService.awaitTermination(500, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		if(!executorService.isShutdown()) {
+			System.out.println("Executor forcefully shutdown requested now!");
+			executorService.shutdownNow();
+		}
 		channel.close();
+		channel.keyFor(selector).cancel();
+		selector.close();
 	}
 
 	@Override
 	public void setDeSerializer(Function<String, Object> deSerializer) {
 		this.deSerializer.setDeserializer(deSerializer);
+	}
+
+	@Override
+	public boolean isOpen() {
+		return channel.isOpen();
 	}
 }

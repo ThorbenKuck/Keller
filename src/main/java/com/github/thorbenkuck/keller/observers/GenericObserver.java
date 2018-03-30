@@ -1,4 +1,4 @@
-package com.github.thorbenkuck.keller.datatypes.observers;
+package com.github.thorbenkuck.keller.observers;
 
 import java.util.function.BiConsumer;
 

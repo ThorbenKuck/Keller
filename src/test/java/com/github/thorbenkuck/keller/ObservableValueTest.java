@@ -1,7 +1,7 @@
 package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.annotations.Testing;
-import com.github.thorbenkuck.keller.datatypes.observers.ObservableValue;
+import com.github.thorbenkuck.keller.observers.ObservableValue;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

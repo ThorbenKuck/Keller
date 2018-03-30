@@ -7,11 +7,11 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface NetworkHub {
-	void initialize(int port) throws IOException;
+	void open(int port) throws IOException;
 
-	void initialize(String string, int port) throws IOException;
+	void open(String string, int port) throws IOException;
 
-	void initialize(InetSocketAddress inetSocketAddress) throws IOException;
+	void open(InetSocketAddress inetSocketAddress) throws IOException;
 
 	void addReceivedListener(Consumer<Message> consumer);
 
@@ -24,4 +24,8 @@ public interface NetworkHub {
 	void setSerializer(Function<Object, String> function);
 
 	void send(Object object, SocketChannel socketChannel) throws IOException;
+
+	void close() throws IOException;
+
+	boolean isOpen();
 }

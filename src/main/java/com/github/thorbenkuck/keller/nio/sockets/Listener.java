@@ -22,6 +22,7 @@ class Listener implements Runnable {
 	private final DisconnectedListener disconnectedListener;
 	private final Deserializer deserializer;
 	private final AtomicBoolean running = new AtomicBoolean(false);
+	private final ReceivedBytesHandler receivedBytesHandler = new ReceivedBytesHandler();
 
 	Listener(Selector selector, ServerSocketChannel serverSocketChannel, ReceivedListener receivedListener, ConnectedListener connectedListener,
 	         DisconnectedListener disconnectedListener, Supplier<ExecutorService> executorService, Supplier<Integer> bufferSize, Deserializer deserializer) {
@@ -48,9 +49,12 @@ class Listener implements Runnable {
 				selector.select();
 				handle(selector.selectedKeys());
 			} catch (IOException e) {
-				e.printStackTrace();
+				running.set(false);
+				e.printStackTrace(System.out);
 			}
 		}
+		System.out.println("Listener finished.");
+		System.out.println("Selector open: " + selector.isOpen());
 	}
 
 	private void handle(Set<SelectionKey> keys) {
@@ -60,36 +64,31 @@ class Listener implements Runnable {
 			SelectionKey key = iterator.next();
 
 			if (key.isAcceptable()) {
-				System.out.println("New Connection detected ..");
 				try {
 					final SocketChannel connected = serverSocketChannel.accept();
 					connected.configureBlocking(false);
-					connected.register(selector, SelectionKey.OP_READ);
 					connectedListener.handle(connected);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			} else if (key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
-				if(!sender.isConnected()) {
-					SocketChannel channel = (SocketChannel) key.channel();
-					disconnectedListener.handle(channel);
-					continue;
-				}
-				ByteBuffer buffer = ByteBuffer.allocate(bufferSize.get());
-				try {
-					sender.read(buffer);
-				} catch (IOException e) {
-					e.printStackTrace();
-					continue;
-				}
-				String result = new String(buffer.array()).trim();
-				received.add(new MessageImpl(deserializer.getDeSerializedContent(result), sender));
+				receivedBytesHandler.handle(sender, this::handleDisconnected, bufferSize, deserializer, received);
 			}
 			iterator.remove();
 		}
 
 		trigger(received);
+	}
+
+	private void handleDisconnected(SocketChannel channel) {
+		disconnectedListener.handle(channel);
+		try {
+			channel.close();
+			channel.keyFor(selector).cancel();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 	}
 
 	private void trigger(final Queue<Message> objects) {

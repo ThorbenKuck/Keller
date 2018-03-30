@@ -9,6 +9,8 @@ import java.util.ArrayList;
 public class ANIOClient {
 
 	public static void main(String[] args) {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+
 		NetworkNode node = NetworkNodeFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
@@ -16,7 +18,7 @@ public class ANIOClient {
 				.build();
 
 		try {
-			node.initialize("localhost", 4444);
+			node.open("localhost", 4444);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -28,11 +30,9 @@ public class ANIOClient {
 		companyDetails.add("Twitter");
 		companyDetails.add("IBM");
 		companyDetails.add("Google");
-		companyDetails.add("Crunchify");
 
 		for (String companyName : companyDetails) {
 
-			log("Sending " + companyName + " .. ");
 			try {
 				node.send(new TestObject(companyName));
 			} catch (IOException e) {
@@ -47,16 +47,13 @@ public class ANIOClient {
 			}
 		}
 
-		System.out.println("Closing ..");
-		try {
-			node.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	private static void log(String s) {
-		System.out.println(s);
+//		System.out.println("Closing ..");
+//		try {
+//			node.close();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		System.out.println("Node closed: " + !node.isOpen());
 	}
 
 }

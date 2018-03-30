@@ -2,25 +2,28 @@ package com.github.thorbenkuck.keller.command;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
 import com.github.thorbenkuck.keller.pipe.Pipeline;
-import com.github.thorbenkuck.keller.datatypes.QueuedPipeline;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 
 public class CommandEnforcer<T> implements Enforcer<T> {
 
 	private boolean running = false;
 	private final Lock countDownLock = new ReentrantLock(false);
 	private final Lock lock = new ReentrantLock(false);
-	private final Pipeline<T> pipeline = new QueuedPipeline<>();
+	private final Pipeline<T> pipeline = Pipeline.unifiedCreation();
 	private QueuedAction onFinish = () -> {};
 	private CountDownLatch countDownLatch = new CountDownLatch(0);
 
 	public CommandEnforcer() {
-		// Do nothing
+		// Do nothing. This Constructor
+		// exists, so that an empty
+		// CommandEnforcer can be created
+		// (without any internal Elements)
 	}
 
 	public CommandEnforcer(Collection<Command<T>> core) {
@@ -91,7 +94,7 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 	@Override
 	public void addCommand(Command<T> command) {
 		synchronized (pipeline) {
-			pipeline.addLast(command::execute);
+			pipeline.addLast(new CommandWrapper<>(command));
 		}
 	}
 
@@ -105,5 +108,43 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 	@Override
 	public boolean running() {
 		return running;
+	}
+
+	private final class CommandWrapper<U> implements Consumer<U> {
+
+		private final Command<U> command;
+
+		private CommandWrapper(Command<U> command) {
+			this.command = command;
+		}
+
+		/**
+		 * Performs this operation on the given argument.
+		 *
+		 * @param u the input argument
+		 */
+		@Override
+		public void accept(U u) {
+			command.execute(u);
+			command.afterExecution();
+		}
+
+		@Override
+		public boolean equals(Object object) {
+			if (this == object) return true;
+			if (object == null) return false;
+			if (!(object instanceof CommandWrapper)) {
+				return object instanceof Command && command.equals(object);
+			}
+
+			CommandWrapper<?> that = (CommandWrapper<?>) object;
+
+			return command.equals(that.command);
+		}
+
+		@Override
+		public int hashCode() {
+			return command.hashCode();
+		}
 	}
 }

@@ -8,6 +8,8 @@ import java.io.IOException;
 public class ANIOServer {
 
 	public static void main(String[] args) {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+
 		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
@@ -32,11 +34,28 @@ public class ANIOServer {
 				}
 			});
 
-			hub.addReceivedListener(message -> System.out.println(message.getContent()));
+			hub.addReceivedListener(message -> System.out.println("Received: " + message.getContent()));
 
-			hub.addDisconnectedListener(System.out::println);
+			hub.addDisconnectedListener(channel -> {
+				try {
+					System.out.println("Disconnected " + channel.getLocalAddress());
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			});
 
-			hub.initialize(4444);
+			hub.open(4444);
+			System.out.println("Server connected to port " + 4444);
+
+//			try {
+//				Thread.sleep(40000);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//
+//			System.out.println("Closing NetworkHub");
+//			hub.close();
+//			System.out.println("Closed");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

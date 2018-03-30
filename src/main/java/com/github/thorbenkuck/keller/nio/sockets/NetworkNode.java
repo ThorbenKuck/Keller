@@ -6,9 +6,10 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface NetworkNode {
-	void initialize(String string, int port) throws IOException;
 
-	void initialize(InetSocketAddress inetSocketAddress) throws IOException;
+	void open(String string, int port) throws IOException;
+
+	void open(InetSocketAddress inetSocketAddress) throws IOException;
 
 	void send(Object object) throws IOException;
 
@@ -19,4 +20,6 @@ public interface NetworkNode {
 	void close() throws IOException;
 
 	void setDeSerializer(Function<String, Object> deSerializer);
+
+	boolean isOpen();
 }

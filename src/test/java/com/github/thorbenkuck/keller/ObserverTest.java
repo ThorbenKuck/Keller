@@ -1,8 +1,8 @@
 package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.annotations.Testing;
-import com.github.thorbenkuck.keller.datatypes.observers.AbstractGenericObservable;
-import com.github.thorbenkuck.keller.datatypes.observers.GenericObserver;
+import com.github.thorbenkuck.keller.observers.AbstractGenericObservable;
+import com.github.thorbenkuck.keller.observers.GenericObserver;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
