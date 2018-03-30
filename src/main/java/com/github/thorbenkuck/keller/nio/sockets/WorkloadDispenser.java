@@ -5,7 +5,10 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -45,6 +48,15 @@ class WorkloadDispenser {
 
 			appealOnCurrent(socketChannel);
 			System.out.println("\n\n\nElements stored: " + channelSelectorMap.size() + "(" + storedInformation.size() + ")\n\n\n");
+		} catch (Throwable throwable) {
+			// This check is needed, because
+			// something appears to be wrong
+			// at the current time.. After
+			// a certain time, the server simply
+			// stops, without warning, without
+			// Exception, nothing. Maybe, we will
+			// catch a rough Exception this way
+			throwable.printStackTrace(System.out);
 		} finally {
 			lock.unlock();
 		}
@@ -63,6 +75,15 @@ class WorkloadDispenser {
 				selectorInformation.setWorkload(newWorkload);
 			}
 			System.out.println("\n\n\nElements stored: " + channelSelectorMap.size() + "(" + storedInformation.size() + ")\n\n\n");
+		} catch (Throwable throwable) {
+			// This check is needed, because
+			// something appears to be wrong
+			// at the current time.. After
+			// a certain time, the server simply
+			// stops, without warning, without
+			// Exception, nothing. Maybe, we will
+			// catch a rough Exception this way
+			throwable.printStackTrace(System.out);
 		} finally {
 			lock.unlock();
 		}
