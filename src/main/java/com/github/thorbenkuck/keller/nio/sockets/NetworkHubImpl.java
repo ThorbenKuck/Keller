@@ -135,4 +135,14 @@ class NetworkHubImpl implements NetworkHub {
 	public boolean isOpen() {
 		return channel.isOpen();
 	}
+
+	@Override
+	public int countReceivingSelectors() {
+		return workloadDispenser.countReceivingSelectors();
+	}
+
+	@Override
+	public int countConnectNodes() {
+		return workloadDispenser.countConnectNodes();
+	}
 }

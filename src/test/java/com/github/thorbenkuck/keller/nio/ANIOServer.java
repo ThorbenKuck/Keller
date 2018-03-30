@@ -13,7 +13,8 @@ public class ANIOServer {
 		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
-				.workloadPerSelector(10)
+				.setBufferSize(1024)
+				.workloadPerSelector(9)
 				.build();
 
 		try {

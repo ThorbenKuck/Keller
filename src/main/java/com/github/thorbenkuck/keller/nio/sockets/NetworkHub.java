@@ -28,4 +28,8 @@ public interface NetworkHub {
 	void close() throws IOException;
 
 	boolean isOpen();
+
+	int countReceivingSelectors();
+
+	int countConnectNodes();
 }

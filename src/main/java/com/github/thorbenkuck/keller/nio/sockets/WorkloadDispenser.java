@@ -47,7 +47,7 @@ class WorkloadDispenser {
 			}
 
 			appealOnCurrent(socketChannel);
-			System.out.println("\n\n\nElements stored: " + channelSelectorMap.size() + "(" + storedInformation.size() + ")\n\n\n");
+			printCurrentStand();
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -65,8 +65,11 @@ class WorkloadDispenser {
 	public void remove(SocketChannel socketChannel) {
 		try {
 			lock.lock();
-			SelectorInformation selectorInformation = channelSelectorMap.remove(socketChannel);
-			System.out.println("workload: " + selectorInformation.getWorkload());
+			SelectorInformation selectorInformation;
+			synchronized (channelSelectorMap) {
+				selectorInformation = channelSelectorMap.remove(socketChannel);
+			}
+
 			socketChannel.keyFor(selectorInformation.selector()).cancel();
 			int newWorkload = selectorInformation.getWorkload() - 1;
 			if (newWorkload == 0) {
@@ -74,7 +77,7 @@ class WorkloadDispenser {
 			} else {
 				selectorInformation.setWorkload(newWorkload);
 			}
-			System.out.println("\n\n\nElements stored: " + channelSelectorMap.size() + "(" + storedInformation.size() + ")\n\n\n");
+			printCurrentStand();
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -89,14 +92,31 @@ class WorkloadDispenser {
 		}
 	}
 
+	private void printCurrentStand() {
+		System.out.println("\n\n\nElements stored: " + countConnectNodes() + "(" + countReceivingSelectors() + ")\n\n\n");
+	}
+
 	public void setMaxWorkload(int to) {
 		this.maxWorkload = to;
 	}
 
+	public int countReceivingSelectors() {
+		synchronized (storedInformation) {
+			return storedInformation.size();
+		}
+	}
+
+	public int countConnectNodes() {
+		synchronized (channelSelectorMap) {
+			return channelSelectorMap.size();
+		}
+	}
+
 	private void stop(SelectorInformation selector) {
-		System.out.println("Stopping and removing out of date selector");
 		selector.getReceiveObjectListener().stop();
-		storedInformation.remove(selector);
+		synchronized (storedInformation) {
+			storedInformation.remove(selector);
+		}
 		// This is so harsh..
 		// Why Oracle? Why
 		// Did you design NIO
@@ -113,7 +133,9 @@ class WorkloadDispenser {
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
 		SelectorInformation selectorInformation = pointer.get();
 		socketChannel.register(selectorInformation.selector(), SelectionKey.OP_READ);
-		channelSelectorMap.put(socketChannel, selectorInformation);
+		synchronized (channelSelectorMap) {
+			channelSelectorMap.put(socketChannel, selectorInformation);
+		}
 		selectorInformation.incrementWorkload();
 	}
 
@@ -123,21 +145,21 @@ class WorkloadDispenser {
 
 	private void setNew(SelectorInformation old) throws IOException {
 		if (old != null) {
-			System.out.println("Storing given SelectorInformation");
-			storedInformation.add(old);
+			synchronized (storedInformation) {
+				storedInformation.add(old);
+			}
 		}
 
-		System.out.println("Searching for a new Selector to use");
 		SelectorInformation usable = getOtherUsable();
 		if (usable != null) {
-			System.out.println("Found usable Selector, that already is instantiated. Setting pointer");
 			pointer.set(usable);
 		} else {
-			System.out.println("Create new Selector ..");
 			Selector selector = Selector.open();
 			final SelectorInformation information = new SelectorInformation(selector, createReceiveObjectListener(selector));
 			pointer.set(information);
-			storedInformation.add(information);
+			synchronized (storedInformation) {
+				storedInformation.add(information);
+			}
 			start(information);
 		}
 	}
