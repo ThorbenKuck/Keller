@@ -4,17 +4,21 @@ import com.github.thorbenkuck.keller.nio.sockets.NetworkHub;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkHubFactory;
 
 import java.io.IOException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ANIOServer {
 
 	public static void main(String[] args) {
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
 		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
 				.setBufferSize(1024)
-				.workloadPerSelector(9)
+				.workloadPerSelector(100)
 				.build();
 
 		try {
@@ -58,6 +62,7 @@ public class ANIOServer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		scheduledExecutorService.scheduleAtFixedRate(hub.workloadDispenser()::collectCorpses, 10, 10, TimeUnit.SECONDS);
 	}
 
 }

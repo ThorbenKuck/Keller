@@ -3,10 +3,12 @@ package com.github.thorbenkuck.keller.nio.sockets;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 public interface NetworkHub {
+
 	void open(int port) throws IOException;
 
 	void open(String string, int port) throws IOException;
@@ -27,9 +29,7 @@ public interface NetworkHub {
 
 	void close() throws IOException;
 
+	WorkloadDispenser workloadDispenser();
+
 	boolean isOpen();
-
-	int countReceivingSelectors();
-
-	int countConnectNodes();
 }

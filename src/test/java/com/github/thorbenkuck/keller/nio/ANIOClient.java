@@ -85,7 +85,7 @@ public class ANIOClient {
 			int finalCount = count;
 			executorService.submit(() -> new ANIOClient(finalCount));
 			try {
-				Thread.sleep(ThreadLocalRandom.current().nextInt(100, 2000));
+				Thread.sleep(ThreadLocalRandom.current().nextInt(1, 10));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

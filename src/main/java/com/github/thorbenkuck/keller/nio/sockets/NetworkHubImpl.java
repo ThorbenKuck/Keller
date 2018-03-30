@@ -3,6 +3,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +17,7 @@ class NetworkHubImpl implements NetworkHub {
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Sender sender = new Sender();
 	private final Deserializer deserializer = new Deserializer();
-	private final WorkloadDispenser workloadDispenser = new WorkloadDispenser(disconnectedListener, receivedListener, deserializer);
+	private final Dispenser workloadDispenser = new Dispenser(disconnectedListener, receivedListener, deserializer);
 	private NewConnectionListener connectionListener;
 	private Selector selector;
 	private ExecutorService executorService = Executors.newCachedThreadPool();
@@ -132,17 +133,12 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	@Override
+	public WorkloadDispenser workloadDispenser() {
+		return workloadDispenser;
+	}
+
+	@Override
 	public boolean isOpen() {
 		return channel.isOpen();
-	}
-
-	@Override
-	public int countReceivingSelectors() {
-		return workloadDispenser.countReceivingSelectors();
-	}
-
-	@Override
-	public int countConnectNodes() {
-		return workloadDispenser.countConnectNodes();
 	}
 }

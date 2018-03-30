@@ -33,14 +33,19 @@ class NewConnectionListener implements Runnable {
 	@Override
 	public void run() {
 		running.set(true);
-		while (running.get()) {
-			try {
-				selector.select();
-				handle(selector.selectedKeys());
-			} catch (IOException e) {
-				running.set(false);
-				e.printStackTrace(System.out);
+		try {
+			while (running.get()) {
+				try {
+					selector.select();
+					handle(selector.selectedKeys());
+				} catch (IOException e) {
+					running.set(false);
+					e.printStackTrace(System.out);
+				}
 			}
+		} catch (Throwable t) {
+			t.printStackTrace(System.out);
+			running.set(false);
 		}
 	}
 
