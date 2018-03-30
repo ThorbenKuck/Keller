@@ -5,10 +5,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
@@ -17,9 +14,9 @@ import java.util.function.Supplier;
 
 class WorkloadDispenser {
 
-	private final List<SelectorInformation> storedInformation = new ArrayList<>();
+	private final Set<SelectorInformation> storedInformation = new HashSet<>();
 	private final Map<SocketChannel, SelectorInformation> channelSelectorMap = new HashMap<>();
-	private final AtomicReference<SelectorInformation> current = new AtomicReference<>();
+	private final AtomicReference<SelectorInformation> pointer = new AtomicReference<>();
 	private final DisconnectedListener disconnectedListener;
 	private final ReceivedListener receivedListener;
 	private final Deserializer deserializer;
@@ -43,7 +40,7 @@ class WorkloadDispenser {
 		try {
 			lock.lock();
 			if (!isCurrentUsable()) {
-				setNew(current.get());
+				setNew(pointer.get());
 			}
 
 			appealOnCurrent(socketChannel);
@@ -93,33 +90,32 @@ class WorkloadDispenser {
 	}
 
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
-		SelectorInformation selectorInformation = current.get();
+		SelectorInformation selectorInformation = pointer.get();
 		socketChannel.register(selectorInformation.selector(), SelectionKey.OP_READ);
 		channelSelectorMap.put(socketChannel, selectorInformation);
 		selectorInformation.incrementWorkload();
 	}
 
 	private boolean isCurrentUsable() throws IOException {
-		if (current.get() == null) {
-			setNew(null);
-		}
-
-		return current.get().getWorkload() < maxWorkload;
+		return pointer.get() != null && pointer.get().getWorkload() < maxWorkload;
 	}
 
 	private void setNew(SelectorInformation old) throws IOException {
 		if (old != null) {
+			System.out.println("Storing given SelectorInformation");
 			storedInformation.add(old);
 		}
 
+		System.out.println("Searching for a new Selector to use");
 		SelectorInformation usable = getOtherUsable();
 		if (usable != null) {
-			current.set(usable);
+			System.out.println("Found usable Selector, that already is instantiated. Setting pointer");
+			pointer.set(usable);
 		} else {
 			System.out.println("Create new Selector ..");
 			Selector selector = Selector.open();
-			SelectorInformation information = new SelectorInformation(selector, createReceiveObjectListener(selector));
-			current.set(information);
+			final SelectorInformation information = new SelectorInformation(selector, createReceiveObjectListener(selector));
+			pointer.set(information);
 			storedInformation.add(information);
 			start(information);
 		}

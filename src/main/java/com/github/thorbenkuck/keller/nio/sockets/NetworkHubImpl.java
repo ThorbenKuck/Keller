@@ -49,7 +49,14 @@ class NetworkHubImpl implements NetworkHub {
 				e.printStackTrace();
 			}
 		});
-		disconnectedListener.add(workloadDispenser::remove);
+		disconnectedListener.add(socketChannel -> {
+			workloadDispenser.remove(socketChannel);
+			try {
+				socketChannel.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
 		connectionListener = new NewConnectionListener(selector, connectedListener, channel);
 		executorService.submit(connectionListener);
 	}

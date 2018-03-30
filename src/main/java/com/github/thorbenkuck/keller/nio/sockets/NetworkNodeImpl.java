@@ -41,7 +41,9 @@ class NetworkNodeImpl implements NetworkNode {
 
 	private void handleDisconnect(SocketChannel channel) {
 		try {
+			channel.close();
 			selector.close();
+			worker.stop();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
