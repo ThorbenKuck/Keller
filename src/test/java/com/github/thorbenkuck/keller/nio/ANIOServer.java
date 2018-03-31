@@ -87,7 +87,7 @@ public class ANIOServer {
 	public static void main(String[] args) {
 		Runtime.getRuntime().addShutdownHook(new Thread(ANIOServer::printFails));
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> addException(e));
-		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
+		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
 
 		NetworkHub hub = NetworkHubFactory.create()
 				.serializer(new JavaSerializer())
@@ -135,12 +135,19 @@ public class ANIOServer {
 			e.printStackTrace();
 		}
 		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 10, 10, TimeUnit.SECONDS);
+		scheduledExecutorService.scheduleAtFixedRate(() -> deepCollect(hub.workloadDispenser()), 30, 30, TimeUnit.SECONDS);
 	}
 
 	private static void collect(WorkloadDispenser workloadDispenser) {
 		System.out.println("COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
 		workloadDispenser.collectCorpses();
 		System.out.println("COLLECTING_CORPSES finished");
+	}
+
+	private static void deepCollect(WorkloadDispenser dispenser) {
+		System.out.println("DEEPLY_COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
+		workloadDispenser.collectCorpses();
+		System.out.println("DEEPLY_COLLECTING_CORPSES finished");
 	}
 
 }

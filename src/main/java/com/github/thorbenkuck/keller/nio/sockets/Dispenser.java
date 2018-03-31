@@ -1,6 +1,7 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -16,78 +17,82 @@ import java.util.function.Supplier;
 
 class Dispenser implements WorkloadDispenser {
 
-	private final Set<SelectorChannel> storedSelectorChannels = new HashSet<>();
-	private final AtomicReference<SelectorChannel> pointer = new AtomicReference<>();
+	private final Set<LocalSelectorChannel> storedLocalSelectorChannels = new HashSet<>();
+	private final AtomicReference<LocalSelectorChannel> pointer = new AtomicReference<>();
 	private final DisconnectedListener disconnectedListener;
 	private final ReceivedListener receivedListener;
 	private final Deserializer deserializer;
 	private final AtomicBoolean active = new AtomicBoolean(false);
 	private final Lock mutex = new ReentrantLock(true);
 	private final Consumer<Exception> exceptionConsumer;
+	private final Sender sender;
 	private Supplier<Integer> bufferSize;
 	private Supplier<ExecutorService> executorServiceSupplier;
 	private int maxWorkload;
 
-	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer) {
-		this(disconnectedListener, receivedListener, deserializer, consumer, 1024);
+	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer, Sender sender) {
+		this(disconnectedListener, receivedListener, deserializer, consumer, sender, 1024);
 	}
 
-	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer, int maxWorkload) {
+	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer, Sender sender, int maxWorkload) {
 		this.disconnectedListener = disconnectedListener;
 		this.receivedListener = receivedListener;
 		this.deserializer = deserializer;
 		exceptionConsumer = consumer;
+		this.sender = sender;
 		this.maxWorkload = maxWorkload;
 		active.set(true);
 	}
 
-	private void stop(SelectorChannel selector) {
-		selector.getReceiveObjectListener().stop();
-		synchronized (storedSelectorChannels) {
-			storedSelectorChannels.remove(selector);
+	private void stop(SelectorChannel selector) throws IOException {
+		selector.close();
+		if(selector.getClass().equals(LocalSelectorChannel.class)) {
+			synchronized (storedLocalSelectorChannels) {
+				storedLocalSelectorChannels.remove((LocalSelectorChannel) selector);
+			}
 		}
-		// This is so harsh..
-		// Why Oracle? Why
-		// Did you design NIO
-		// in this way? Who
-		// approved this
-		// Design?!
-		selector.selector().wakeup();
 	}
 
-	private void start(SelectorChannel selector) {
+	private void start(LocalSelectorChannel selector) {
 		executorServiceSupplier.get().submit(selector.getReceiveObjectListener());
 	}
 
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
 		System.out.println("Selecting current pointer");
-		SelectorChannel selectorChannel = pointer.get();
+		LocalSelectorChannel localSelectorChannel = pointer.get();
 		System.out.println("Registering provided SocketChannel");
-		socketChannel.register(selectorChannel.selector(), SelectionKey.OP_READ);
-		System.out.println("Adding SocketChannel to SelectorChannel");
-		selectorChannel.add(socketChannel);
+		socketChannel.register(localSelectorChannel.selector(), SelectionKey.OP_READ);
+		System.out.println("Adding SocketChannel to LocalSelectorChannel");
+		localSelectorChannel.add(socketChannel);
 	}
 
-	private boolean isCurrentUsable() throws IOException {
-		return pointer.get() != null && pointer.get().getWorkload() < maxWorkload;
+	private boolean isCurrentUsable() {
+		return pointer.get() != null && pointer.get().getWorkload() < maxWorkload && pointer.get().selector.isOpen();
 	}
 
-	private void setNew(SelectorChannel old) throws IOException {
+	private void setNew(LocalSelectorChannel old) throws IOException {
 		if (old != null) {
-			synchronized (storedSelectorChannels) {
-				storedSelectorChannels.add(old);
+			if(!old.selector().isOpen()) {
+				old.close();
+				synchronized (storedLocalSelectorChannels) {
+					storedLocalSelectorChannels.remove(old);
+				}
+			} else {
+				synchronized (storedLocalSelectorChannels) {
+					storedLocalSelectorChannels.add(old);
+				}
 			}
 		}
 
-		SelectorChannel usable = getOtherUsable();
+		LocalSelectorChannel usable = getOtherUsable();
 		if (usable != null) {
 			pointer.set(usable);
 		} else {
 			Selector selector = Selector.open();
-			final SelectorChannel information = new SelectorChannel(selector, createReceiveObjectListener(selector));
+			final LocalSelectorChannel information = new LocalSelectorChannel(selector, createReceiveObjectListener(selector));
 			pointer.set(information);
-			synchronized (storedSelectorChannels) {
-				storedSelectorChannels.add(information);
+			synchronized (storedLocalSelectorChannels) {
+				storedLocalSelectorChannels.add(information);
 			}
 			start(information);
 		}
@@ -101,48 +106,66 @@ class Dispenser implements WorkloadDispenser {
 		System.out.println("\n\n\nElements stored: " + countConnectNodes() + "(" + countSelectorChannels() + ")\n\n\n");
 	}
 
-	private void clearFrom(SocketChannel socketChannel, SelectorChannel selectorChannel) {
-		selectorChannel.remove(socketChannel);
-		int newWorkload = selectorChannel.getWorkload();
+	private void clearFrom(SocketChannel socketChannel, SelectorChannel localSelectorChannel) throws IOException {
+		localSelectorChannel.remove(socketChannel);
+		int newWorkload = localSelectorChannel.getWorkload();
 		if (newWorkload == 0) {
-			stop(selectorChannel);
+			stop(localSelectorChannel);
 		}
 //		printCurrentStand();
 	}
 
-	private void appealAll(Collection<SocketChannel> channels) throws IOException {
-		IOException exception = null;
-		for(SocketChannel socketChannel : channels) {
-			try {
-				if (!isCurrentUsable()) {
-					setNew(pointer.get());
-				}
-
-				appealOnCurrent(socketChannel);
-			} catch (IOException e) {
-				if(exception == null) {
-					exception = e;
-				} else {
-					exception.addSuppressed(e);
-				}
-			}
+	private LocalSelectorChannel getSelectorChannel(SocketChannel socketChannel) {
+		final List<LocalSelectorChannel> localSelectorChannels;
+		synchronized (storedLocalSelectorChannels) {
+			localSelectorChannels = new ArrayList<>(storedLocalSelectorChannels);
 		}
-		if(exception != null) {
-			throw exception;
-		}
-	}
-
-	private SelectorChannel getSelectorChannel(SocketChannel socketChannel) {
-		final List<SelectorChannel> selectorChannels;
-		synchronized (storedSelectorChannels) {
-			selectorChannels = new ArrayList<>(storedSelectorChannels);
-		}
-		for(SelectorChannel channel : selectorChannels) {
+		for(LocalSelectorChannel channel : localSelectorChannels) {
 			if(channel.contains(socketChannel)) {
 				return channel;
 			}
 		}
 		return null;
+	}
+
+	private void assignLowest() {
+		final List<LocalSelectorChannel> selectorChannels;
+		synchronized (storedLocalSelectorChannels) {
+			selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+		}
+
+		LocalSelectorChannel lowest = null;
+
+		for(LocalSelectorChannel selectorChannel : selectorChannels) {
+			if(lowest == null) {
+				lowest = selectorChannel;
+			} else {
+				if(selectorChannel.getWorkload() < lowest.getWorkload()) {
+					lowest = selectorChannel;
+				}
+			}
+		}
+	}
+
+	private void checkAllSelectorChannels() {
+		final List<LocalSelectorChannel> selectorChannels;
+		synchronized (storedLocalSelectorChannels) {
+			selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+		}
+
+		for(LocalSelectorChannel selectorChannel : selectorChannels) {
+			pointer.set(selectorChannel);
+			if(!isCurrentUsable()) {
+				synchronized (storedLocalSelectorChannels) {
+					storedLocalSelectorChannels.remove(selectorChannel);
+				}
+				try {
+					selectorChannel.close();
+				} catch (IOException e) {
+					exceptionConsumer.accept(e);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -163,7 +186,7 @@ class Dispenser implements WorkloadDispenser {
 
 			if (!isCurrentUsable()) {
 				System.out.println("Current pointer is not usable! Updating..");
-				SelectorChannel current = pointer.get();
+				LocalSelectorChannel current = pointer.get();
 				setNew(current);
 			}
 
@@ -193,27 +216,27 @@ class Dispenser implements WorkloadDispenser {
 			System.out.println("Not active. Returning.");
 			return new ArrayList<>();
 		}
-		final List<SelectorChannel> keySet;
-		synchronized (storedSelectorChannels) {
-			if(storedSelectorChannels.isEmpty()) {
+		final List<LocalSelectorChannel> keySet;
+		synchronized (storedLocalSelectorChannels) {
+			if(storedLocalSelectorChannels.isEmpty()) {
 				System.out.println("No running selector channels");
 				return socketChannels;
 			}
 			System.out.println("Copying stored selector channels");
-			keySet = new ArrayList<>(storedSelectorChannels);
+			keySet = new ArrayList<>(storedLocalSelectorChannels);
 		}
 		try {
 			System.out.println("[COLLECT_CORPSES] acquiring mutex");
 			mutex.lock();
 			System.out.println("[COLLECT_CORPSES] acquired mutex");
 			System.out.println("Searching in " + keySet);
-			for (SelectorChannel selectorChannel : keySet) {
-				for(SocketChannel socketChannel : selectorChannel) {
+			for (LocalSelectorChannel localSelectorChannel : keySet) {
+				for(SocketChannel socketChannel : localSelectorChannel) {
 					System.out.println("Looking at: " + socketChannel);
 					if (!socketChannel.isConnected() || !socketChannel.isOpen()) {
 						System.out.println("Found corpse");
 						socketChannels.add(socketChannel);
-						clearFrom(socketChannel, selectorChannel);
+						clearFrom(socketChannel, localSelectorChannel);
 					}
 				}
 			}
@@ -234,6 +257,96 @@ class Dispenser implements WorkloadDispenser {
 	}
 
 	@Override
+	public List<SocketChannel> deepCollectCorpses() {
+		collectCorpses();
+		final List<SocketChannel> socketChannels = new ArrayList<>();
+		try {
+			System.out.println("[DEEP_COLLECT_CORPSES] acquiring mutex");
+			mutex.lock();
+			System.out.println("[DEEP_COLLECT_CORPSES] acquired mutex");
+			final List<SelectorChannel> selectorChannels;
+			synchronized (storedLocalSelectorChannels) {
+				if(storedLocalSelectorChannels.isEmpty()) {
+					return socketChannels;
+				}
+				selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+			}
+
+			for(SelectorChannel selectorChannel : selectorChannels) {
+				final List<SocketChannel> setChannels = new ArrayList<>(selectorChannel.getSocketChannels());
+				for(SocketChannel socketChannel : setChannels) {
+					if(selectorChannel.getWorkload() == 0) {
+						continue;
+					}
+					String toSend = "PING";
+					try {
+						if(!sender.send(toSend, socketChannel)) {
+							selectorChannel.remove(socketChannel);
+							socketChannels.add(socketChannel);
+						}
+					} catch (ClosedChannelException e) {
+						// We found an corpse!
+						selectorChannel.remove(socketChannel);
+						socketChannels.add(socketChannel);
+					}
+				}
+			}
+			checkAllSelectorChannels();
+			assignLowest();
+		} catch (Throwable throwable) {
+			// This check is needed, because
+			// something appears to be wrong
+			// at the current time.. After
+			// a certain time, the server simply
+			// stops, without warning, without
+			// Exception, nothing. Maybe, we will
+			// catch a rough Exception this way
+			throwable.printStackTrace(System.out);
+		} finally {
+			mutex.unlock();
+			System.out.println("[DEEP_COLLECT_CORPSES] released mutex");
+		}
+
+		return socketChannels;
+	}
+
+	@Override
+	public void clearAll() {
+		try {
+			System.out.println("[CLEAR_ALL] acquiring mutex");
+			mutex.lock();
+			System.out.println("[CLEAR_ALL] acquired mutex");
+			final List<LocalSelectorChannel> selectorChannels;
+			synchronized (storedLocalSelectorChannels) {
+				if(storedLocalSelectorChannels.isEmpty()) {
+					return;
+				}
+				selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+			}
+
+			for(LocalSelectorChannel selectorChannel : selectorChannels) {
+				selectorChannel.close();
+				synchronized (storedLocalSelectorChannels) {
+					storedLocalSelectorChannels.remove(selectorChannel);
+				}
+			}
+			setNew(null);
+		} catch (Throwable throwable) {
+			// This check is needed, because
+			// something appears to be wrong
+			// at the current time.. After
+			// a certain time, the server simply
+			// stops, without warning, without
+			// Exception, nothing. Maybe, we will
+			// catch a rough Exception this way
+			throwable.printStackTrace(System.out);
+		} finally {
+			mutex.unlock();
+			System.out.println("[CLEAR_ALL] released mutex");
+		}
+	}
+
+	@Override
 	public void remove(SocketChannel socketChannel) {
 		try {
 			System.out.println("[REMOVE] acquiring mutex");
@@ -242,11 +355,11 @@ class Dispenser implements WorkloadDispenser {
 			if(!active.get()) {
 				return;
 			}
-			SelectorChannel selectorChannel = getSelectorChannel(socketChannel);
-			if(selectorChannel == null) {
+			LocalSelectorChannel localSelectorChannel = getSelectorChannel(socketChannel);
+			if(localSelectorChannel == null) {
 				return;
 			}
-			clearFrom(socketChannel, selectorChannel);
+			clearFrom(socketChannel, localSelectorChannel);
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -269,17 +382,17 @@ class Dispenser implements WorkloadDispenser {
 
 	@Override
 	public int countSelectorChannels() {
-		synchronized (storedSelectorChannels) {
-			return storedSelectorChannels.size();
+		synchronized (storedLocalSelectorChannels) {
+			return storedLocalSelectorChannels.size();
 		}
 	}
 
 	@Override
 	public int countConnectNodes() {
 		int size = 0;
-		synchronized (storedSelectorChannels) {
-			for(SelectorChannel selectorChannel : storedSelectorChannels) {
-				size += selectorChannel.getWorkload();
+		synchronized (storedLocalSelectorChannels) {
+			for(LocalSelectorChannel localSelectorChannel : storedLocalSelectorChannels) {
+				size += localSelectorChannel.getWorkload();
 			}
 		}
 		return size;
@@ -293,10 +406,10 @@ class Dispenser implements WorkloadDispenser {
 		this.executorServiceSupplier = executorServiceSupplier;
 	}
 
-	public SelectorChannel getOtherUsable() {
-		for (SelectorChannel selectorChannel : storedSelectorChannels) {
-			if (selectorChannel.getWorkload() < maxWorkload) {
-				return selectorChannel;
+	public LocalSelectorChannel getOtherUsable() {
+		for (LocalSelectorChannel localSelectorChannel : storedLocalSelectorChannels) {
+			if (localSelectorChannel.getWorkload() < maxWorkload) {
+				return localSelectorChannel;
 			}
 		}
 		return null;
@@ -308,13 +421,13 @@ class Dispenser implements WorkloadDispenser {
 			mutex.lock();
 			System.out.println("[SHUTDOWN] acquired mutex");
 			active.set(false);
-			final List<SelectorChannel> copy;
-			synchronized (storedSelectorChannels) {
-				copy = new ArrayList<>(storedSelectorChannels);
+			final List<LocalSelectorChannel> copy;
+			synchronized (storedLocalSelectorChannels) {
+				copy = new ArrayList<>(storedLocalSelectorChannels);
 			}
-			for(SelectorChannel selectorChannel : copy) {
+			for(LocalSelectorChannel localSelectorChannel : copy) {
 				try {
-					selectorChannel.close();
+					localSelectorChannel.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -325,31 +438,49 @@ class Dispenser implements WorkloadDispenser {
 		}
 	}
 
-	private final class SelectorChannel implements Iterable<SocketChannel> {
+	/**
+	 * Returns an iterator over elements of type {@code T}.
+	 *
+	 * @return an Iterator.
+	 */
+	@Override
+	public Iterator<SelectorChannel> iterator() {
+		Iterator<SelectorChannel> iterator;
+		synchronized (storedLocalSelectorChannels) {
+			iterator = new ConcurrentIterator<>(new ArrayList<>(storedLocalSelectorChannels));
+		}
+
+		return iterator;
+	}
+
+	private final class LocalSelectorChannel implements SelectorChannel {
 
 		private final Selector selector;
 		private final ReceiveObjectListener receiveObjectListener;
 		private final List<SocketChannel> socketChannels = new ArrayList<>();
 
-		private SelectorChannel(Selector selector, ReceiveObjectListener receiveObjectListener) {
+		private LocalSelectorChannel(Selector selector, ReceiveObjectListener receiveObjectListener) {
 			this.selector = selector;
 			this.receiveObjectListener = receiveObjectListener;
-		}
-
-		public Selector selector() {
-			return selector;
 		}
 
 		public ReceiveObjectListener getReceiveObjectListener() {
 			return receiveObjectListener;
 		}
 
+		@Override
+		public Selector selector() {
+			return selector;
+		}
+
+		@Override
 		public int getWorkload() {
 			synchronized (socketChannels) {
 				return socketChannels.size();
 			}
 		}
 
+		@Override
 		public void add(SocketChannel socketChannel) throws ClosedChannelException {
 			if(contains(socketChannel)) {
 				return;
@@ -360,6 +491,7 @@ class Dispenser implements WorkloadDispenser {
 			socketChannel.register(selector, SelectionKey.OP_READ);
 		}
 
+		@Override
 		public boolean contains(SocketChannel socketChannel) {
 			if(socketChannel == null) {
 				return false;
@@ -369,6 +501,7 @@ class Dispenser implements WorkloadDispenser {
 			}
 		}
 
+		@Override
 		public void remove(SocketChannel socketChannel) {
 			if(!contains(socketChannel)) {
 				return;
@@ -382,10 +515,12 @@ class Dispenser implements WorkloadDispenser {
 			}
 		}
 
+		@Override
 		public void wakeup() {
 			selector.wakeup();
 		}
 
+		@Override
 		public void close() throws IOException {
 			final List<SocketChannel> copy;
 			synchronized (socketChannels) {
@@ -402,61 +537,58 @@ class Dispenser implements WorkloadDispenser {
 			}
 		}
 
+		@Override
 		public List<SocketChannel> getSocketChannels() {
 			synchronized (socketChannels) {
 				return new ArrayList<>(socketChannels);
 			}
 		}
 
-		/**
-		 * Returns an iterator over elements of type {@code T}.
-		 *
-		 * @return an Iterator.
-		 */
 		@Override
 		public synchronized Iterator<SocketChannel> iterator() {
 			synchronized (socketChannels) {
-				return new SocketChannelIterator(socketChannels);
+				return new ConcurrentIterator<>(socketChannels);
 			}
 		}
 
 		@Override
 		public String toString() {
 			synchronized (socketChannels) {
-				return "SelectorChannel{" + selector + ", " + socketChannels.toString() + "}";
+				return "LocalSelectorChannel{" + selector + ", " + socketChannels.toString() + "}";
 			}
 		}
+	}
 
-		private final class SocketChannelIterator implements Iterator<SocketChannel> {
+	private final class ConcurrentIterator<T> implements Iterator<T> {
 
-			private final Queue<SocketChannel> channels;
+		private final Queue<T> channels;
 
-			private SocketChannelIterator(Collection<SocketChannel> channels) {
-				this.channels = new LinkedList<>(channels);
-			}
-
-			/**
-			 * Returns {@code true} if the iteration has more elements.
-			 * (In other words, returns {@code true} if {@link #next} would
-			 * return an element rather than throwing an exception.)
-			 *
-			 * @return {@code true} if the iteration has more elements
-			 */
-			@Override
-			public boolean hasNext() {
-				return channels.peek() != null;
-			}
-
-			/**
-			 * Returns the next element in the iteration.
-			 *
-			 * @return the next element in the iteration
-			 * @throws NoSuchElementException if the iteration has no more elements
-			 */
-			@Override
-			public SocketChannel next() {
-				return channels.poll();
-			}
+		private ConcurrentIterator(Collection<T> channels) {
+			this.channels = new LinkedList<>(channels);
 		}
+
+		/**
+		 * Returns {@code true} if the iteration has more elements.
+		 * (In other words, returns {@code true} if {@link #next} would
+		 * return an element rather than throwing an exception.)
+		 *
+		 * @return {@code true} if the iteration has more elements
+		 */
+		@Override
+		public boolean hasNext() {
+			return channels.peek() != null;
+		}
+
+		/**
+		 * Returns the next element in the iteration.
+		 *
+		 * @return the next element in the iteration
+		 * @throws NoSuchElementException if the iteration has no more elements
+		 */
+		@Override
+		public T next() {
+			return channels.poll();
+		}
+
 	}
 }

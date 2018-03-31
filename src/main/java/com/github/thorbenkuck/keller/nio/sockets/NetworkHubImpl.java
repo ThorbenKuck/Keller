@@ -16,7 +16,7 @@ class NetworkHubImpl implements NetworkHub {
 	private final DisconnectedListener disconnectedListener = new DisconnectedListener();
 	private final Sender sender = new Sender();
 	private final Deserializer deserializer = new Deserializer();
-	private final Dispenser workloadDispenser = new Dispenser(disconnectedListener, receivedListener, deserializer, this::consume);
+	private final Dispenser workloadDispenser = new Dispenser(disconnectedListener, receivedListener, deserializer, this::consume, sender);
 	private Consumer<Exception> onException = e -> e.printStackTrace(System.out);
 	private NewConnectionListener connectionListener;
 	private Selector connectionSelector;

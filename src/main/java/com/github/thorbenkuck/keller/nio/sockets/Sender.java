@@ -13,14 +13,15 @@ public class Sender {
 		return serializer.apply(o);
 	}
 
-	public void send(final Object object, final SocketChannel channel) throws IOException {
+	public boolean send(final Object object, final SocketChannel channel) throws IOException {
 		if(!channel.isOpen()) {
-			return;
+			return false;
 		}
 		String toSend = serialize(object);
 		byte[] message = toSend.getBytes();
 		ByteBuffer buffer = ByteBuffer.wrap(message);
 		channel.write(buffer);
+		return true;
 	}
 
 	public void setSerializer(Function<Object, String> serializer) {
