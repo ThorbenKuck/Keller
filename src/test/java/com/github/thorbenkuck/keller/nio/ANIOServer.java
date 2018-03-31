@@ -57,7 +57,7 @@ public class ANIOServer {
 			return;
 		}
 		try {
-			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + ")");
+			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + "in " + workloadDispenser.countSelectorChannels() + " SelectorChannels" + ")");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -96,6 +96,7 @@ public class ANIOServer {
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
 				.bufferSize(1024)
+				.workloadPerSelector(100)
 				.build();
 
 		workloadDispenser = hub.workloadDispenser();

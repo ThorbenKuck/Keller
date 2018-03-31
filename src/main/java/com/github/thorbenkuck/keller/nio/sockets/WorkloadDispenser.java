@@ -5,13 +5,16 @@ import java.nio.channels.SocketChannel;
 import java.util.List;
 
 public interface WorkloadDispenser extends Iterable<SelectorChannel> {
-	void appeal(SocketChannel socketChannel) throws IOException;
 
-	List<SocketChannel> collectCorpses();
+	boolean isEmpty();
 
-	List<SocketChannel> deepCollectCorpses();
+	void assignLowestSelectorChannel();
 
 	void clearAll();
+
+	void cleanUpSelectorChannels();
+
+	void appeal(SocketChannel socketChannel) throws IOException;
 
 	void remove(SocketChannel socketChannel);
 
@@ -20,4 +23,10 @@ public interface WorkloadDispenser extends Iterable<SelectorChannel> {
 	int countSelectorChannels();
 
 	int countConnectNodes();
+
+	List<SocketChannel> collectCorpses();
+
+	List<SocketChannel> deepCollectCorpses();
+
+	void shutdown();
 }

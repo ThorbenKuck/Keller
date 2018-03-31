@@ -16,6 +16,8 @@ public interface SelectorChannel extends Iterable<SocketChannel> {
 
 	boolean contains(SocketChannel socketChannel);
 
+	boolean isOpen();
+
 	void remove(SocketChannel socketChannel);
 
 	void wakeup();

@@ -3,17 +3,15 @@ package com.github.thorbenkuck.keller.nio.sockets;
 import com.github.thorbenkuck.keller.datatypes.ConcurrentIterator;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -25,7 +23,7 @@ class Dispenser implements WorkloadDispenser {
 	private final ReceivedListener receivedListener;
 	private final Deserializer deserializer;
 	private final AtomicBoolean active = new AtomicBoolean(false);
-	private final Lock mutex = new ReentrantLock(true);
+	private final Semaphore mutex = new Semaphore(1);
 	private final Consumer<Exception> exceptionConsumer;
 	private final Sender sender;
 	private Supplier<Integer> bufferSize;
@@ -40,10 +38,56 @@ class Dispenser implements WorkloadDispenser {
 		this.disconnectedListener = disconnectedListener;
 		this.receivedListener = receivedListener;
 		this.deserializer = deserializer;
-		exceptionConsumer = consumer;
+		this.exceptionConsumer = consumer;
 		this.sender = sender;
 		this.maxWorkload = maxWorkload;
 		active.set(true);
+	}
+
+	private List<LocalSelectorChannel> copySelectorChannels() {
+		final List<LocalSelectorChannel> localSelectorChannels;
+		synchronized (storedLocalSelectorChannels) {
+			localSelectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+		}
+		return localSelectorChannels;
+	}
+
+	private void add(LocalSelectorChannel localSelectorChannel) {
+		synchronized (storedLocalSelectorChannels) {
+			storedLocalSelectorChannels.add(localSelectorChannel);
+		}
+	}
+
+	private void remove(LocalSelectorChannel localSelectorChannel) {
+		synchronized (storedLocalSelectorChannels) {
+			storedLocalSelectorChannels.remove(localSelectorChannel);
+		}
+	}
+
+	private LocalSelectorChannel getPointer() {
+		LocalSelectorChannel channel;
+		synchronized (pointer) {
+			channel = pointer.get();
+		}
+		return channel;
+	}
+
+	private void setPointer(LocalSelectorChannel channel) {
+		synchronized (pointer) {
+			pointer.set(channel);
+		}
+	}
+
+	private void acquire() throws InterruptedException {
+		mutex.acquire();
+	}
+
+	private void release() {
+		mutex.release();
+	}
+
+	private void handle(Exception e) {
+		exceptionConsumer.accept(e);
 	}
 
 	private void start(LocalSelectorChannel selector) {
@@ -52,40 +96,49 @@ class Dispenser implements WorkloadDispenser {
 
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
 		System.out.println("Selecting current pointer");
-		LocalSelectorChannel localSelectorChannel = pointer.get();
+		LocalSelectorChannel currentPointer = getPointer();
 		System.out.println("Adding SocketChannel to LocalSelectorChannel");
-		localSelectorChannel.add(socketChannel);
+		currentPointer.add(socketChannel);
 	}
 
 	private boolean isCurrentUsable() {
-		return pointer.get() != null && pointer.get().getWorkload() < maxWorkload && pointer.get().selector.isOpen();
+		SelectorChannel channel = getPointer();
+		return channel != null && channel.getWorkload() < maxWorkload && channel.isOpen();
+	}
+
+	private LocalSelectorChannel getOtherUsable() {
+		final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
+		for (LocalSelectorChannel localSelectorChannel : selectorChannels) {
+			if (localSelectorChannel.getWorkload() < maxWorkload) {
+				return localSelectorChannel;
+			}
+		}
+		return null;
 	}
 
 	private void setNew(LocalSelectorChannel old) throws IOException {
 		if (old != null) {
-			if(!old.selector().isOpen()) {
-				old.close();
-				synchronized (storedLocalSelectorChannels) {
-					storedLocalSelectorChannels.remove(old);
+			if (!old.isOpen()) {
+				remove(old);
+				try {
+					old.close();
+				} catch (IOException e) {
+					handle(e);
 				}
 			} else {
-				synchronized (storedLocalSelectorChannels) {
-					storedLocalSelectorChannels.add(old);
-				}
+				add(old);
 			}
 		}
 
 		LocalSelectorChannel usable = getOtherUsable();
 		if (usable != null) {
-			pointer.set(usable);
+			setPointer(usable);
 		} else {
 			Selector selector = Selector.open();
-			final LocalSelectorChannel information = new LocalSelectorChannel(selector, createReceiveObjectListener(selector));
-			pointer.set(information);
-			synchronized (storedLocalSelectorChannels) {
-				storedLocalSelectorChannels.add(information);
-			}
-			start(information);
+			final LocalSelectorChannel channel = new LocalSelectorChannel(selector, createReceiveObjectListener(selector));
+			start(channel);
+			add(channel);
+			setPointer(channel);
 		}
 	}
 
@@ -99,59 +152,59 @@ class Dispenser implements WorkloadDispenser {
 		if (newWorkload == 0) {
 			localSelectorChannel.close();
 		}
-//		printCurrentStand();
 	}
 
 	private LocalSelectorChannel getSelectorChannel(SocketChannel socketChannel) {
-		final List<LocalSelectorChannel> localSelectorChannels;
-		synchronized (storedLocalSelectorChannels) {
-			localSelectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+		if(isEmpty()) {
+			return null;
 		}
-		for(LocalSelectorChannel channel : localSelectorChannels) {
-			if(channel.contains(socketChannel)) {
+		final List<LocalSelectorChannel> localSelectorChannels = copySelectorChannels();
+		for (LocalSelectorChannel channel : localSelectorChannels) {
+			if (channel.contains(socketChannel)) {
 				return channel;
 			}
 		}
 		return null;
 	}
 
-	private void assignLowest() {
-		final List<LocalSelectorChannel> selectorChannels;
-		synchronized (storedLocalSelectorChannels) {
-			selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
-		}
-
-		LocalSelectorChannel lowest = null;
-
-		for(LocalSelectorChannel selectorChannel : selectorChannels) {
-			if(lowest == null) {
-				lowest = selectorChannel;
-			} else {
-				if(selectorChannel.getWorkload() < lowest.getWorkload()) {
-					lowest = selectorChannel;
-				}
-			}
-		}
+	private boolean operationsNeeded() {
+		return !isEmpty() && active.get();
 	}
 
-	private void checkAllSelectorChannels() {
-		final List<LocalSelectorChannel> selectorChannels;
-		synchronized (storedLocalSelectorChannels) {
-			selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
-		}
+	void setBufferSize(Supplier<Integer> bufferSize) {
+		this.bufferSize = bufferSize;
+	}
 
-		for(LocalSelectorChannel selectorChannel : selectorChannels) {
-			pointer.set(selectorChannel);
-			if(!isCurrentUsable()) {
-				synchronized (storedLocalSelectorChannels) {
-					storedLocalSelectorChannels.remove(selectorChannel);
-				}
-				try {
-					selectorChannel.close();
-				} catch (IOException e) {
-					exceptionConsumer.accept(e);
+	void setExecutorServiceSupplier(Supplier<ExecutorService> executorServiceSupplier) {
+		this.executorServiceSupplier = executorServiceSupplier;
+	}
+
+	@Override
+	public void cleanUpSelectorChannels() {
+		try {
+			System.out.println("[CLEAN_UP] released mutex");
+			acquire();
+			System.out.println("[CLEAN_UP] released mutex");
+			if(!operationsNeeded()) {
+				return;
+			}
+			final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
+			for (LocalSelectorChannel selectorChannel : selectorChannels) {
+				setPointer(selectorChannel);
+				if (!isCurrentUsable()) {
+					remove(selectorChannel);
+					try {
+						selectorChannel.close();
+					} catch (IOException e) {
+						handle(e);
+					}
 				}
 			}
+		} catch (InterruptedException e) {
+			handle(e);
+		} finally {
+			release();
+			System.out.println("[CLEAN_UP] released mutex");
 		}
 	}
 
@@ -159,85 +212,62 @@ class Dispenser implements WorkloadDispenser {
 	public void appeal(SocketChannel socketChannel) throws IOException {
 		try {
 			System.out.println("[APPEAL] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[APPEAL] acquired mutex");
 			if(!active.get()) {
-				System.out.println("Not active... returning..");
 				return;
 			}
 
-			if(getSelectorChannel(socketChannel) != null) {
+			// This should (in theory)
+			// never happen. However,
+			// if an develop decides to
+			// appeal the same socketChannel
+			// twice, this is mandatory
+			// to ensure no bloating
+			if (getSelectorChannel(socketChannel) != null) {
 				System.out.println("[ERROR] SocketChannel already appealed!");
 				return;
 			}
 
 			if (!isCurrentUsable()) {
 				System.out.println("Current pointer is not usable! Updating..");
-				LocalSelectorChannel current = pointer.get();
-				setNew(current);
+				setNew(getPointer());
 			}
 
 			System.out.println("Appealing on current");
 			appealOnCurrent(socketChannel);
-//			printCurrentStand();
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rouge Exception this way
-			throwable.printStackTrace(System.out);
+		} catch (InterruptedException e) {
+			handle(e);
 		} finally {
-			mutex.unlock();
+			release();
 			System.out.println("[APPEAL] released mutex");
 		}
 	}
 
 	@Override
 	public List<SocketChannel> collectCorpses() {
-//		System.out.println("\n\nTrying to collect corpses ..\n\n");
 		final List<SocketChannel> socketChannels = new ArrayList<>();
-		if(!active.get()) {
-			System.out.println("Not active. Returning.");
-			return new ArrayList<>();
-		}
-		final List<LocalSelectorChannel> keySet;
-		synchronized (storedLocalSelectorChannels) {
-			if(storedLocalSelectorChannels.isEmpty()) {
-				System.out.println("No running selector channels");
-				return socketChannels;
-			}
-			System.out.println("Copying stored selector channels");
-			keySet = new ArrayList<>(storedLocalSelectorChannels);
-		}
+
 		try {
 			System.out.println("[COLLECT_CORPSES] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[COLLECT_CORPSES] acquired mutex");
-			System.out.println("Searching in " + keySet);
+			if(!operationsNeeded()) {
+				return socketChannels;
+			}
+			final List<LocalSelectorChannel> keySet = copySelectorChannels();
 			for (LocalSelectorChannel localSelectorChannel : keySet) {
-				for(SocketChannel socketChannel : localSelectorChannel) {
-					System.out.println("Looking at: " + socketChannel);
+				for (SocketChannel socketChannel : localSelectorChannel) {
 					if (!socketChannel.isConnected() || !socketChannel.isOpen()) {
-						System.out.println("Found corpse");
 						socketChannels.add(socketChannel);
 						clearFrom(socketChannel, localSelectorChannel);
 					}
 				}
 			}
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rouge Exception this way
-			throwable.printStackTrace(System.out);
-		}  finally {
-			mutex.unlock();
+		} catch (InterruptedException | IOException e) {
+			handle(e);
+		} finally {
+			release();
 			System.out.println("[COLLECT_CORPSES] released mutex");
 		}
 		return socketChannels;
@@ -249,25 +279,22 @@ class Dispenser implements WorkloadDispenser {
 		final List<SocketChannel> socketChannels = new ArrayList<>();
 		try {
 			System.out.println("[DEEP_COLLECT_CORPSES] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[DEEP_COLLECT_CORPSES] acquired mutex");
-			final List<SelectorChannel> selectorChannels;
-			synchronized (storedLocalSelectorChannels) {
-				if(storedLocalSelectorChannels.isEmpty()) {
-					return socketChannels;
-				}
-				selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+			if(!operationsNeeded()) {
+				return socketChannels;
 			}
+			final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
 
-			for(SelectorChannel selectorChannel : selectorChannels) {
+			for (SelectorChannel selectorChannel : selectorChannels) {
 				final List<SocketChannel> setChannels = new ArrayList<>(selectorChannel.getSocketChannels());
-				for(SocketChannel socketChannel : setChannels) {
-					if(selectorChannel.getWorkload() == 0) {
+				for (SocketChannel socketChannel : setChannels) {
+					if (selectorChannel.getWorkload() == 0) {
 						continue;
 					}
 					String toSend = "PING";
 					try {
-						if(!sender.send(toSend, socketChannel)) {
+						if (!sender.send(toSend, socketChannel)) {
 							selectorChannel.remove(socketChannel);
 							socketChannels.add(socketChannel);
 						}
@@ -278,19 +305,11 @@ class Dispenser implements WorkloadDispenser {
 					}
 				}
 			}
-			checkAllSelectorChannels();
-			assignLowest();
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rough Exception this way
-			throwable.printStackTrace(System.out);
+			cleanUpSelectorChannels();
+		} catch (InterruptedException e) {
+			handle(e);
 		} finally {
-			mutex.unlock();
+			release();
 			System.out.println("[DEEP_COLLECT_CORPSES] released mutex");
 		}
 
@@ -301,34 +320,22 @@ class Dispenser implements WorkloadDispenser {
 	public void clearAll() {
 		try {
 			System.out.println("[CLEAR_ALL] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[CLEAR_ALL] acquired mutex");
-			final List<LocalSelectorChannel> selectorChannels;
-			synchronized (storedLocalSelectorChannels) {
-				if(storedLocalSelectorChannels.isEmpty()) {
-					return;
-				}
-				selectorChannels = new ArrayList<>(storedLocalSelectorChannels);
+			if(!operationsNeeded()) {
+				return;
 			}
+			final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
 
-			for(LocalSelectorChannel selectorChannel : selectorChannels) {
+			for (LocalSelectorChannel selectorChannel : selectorChannels) {
 				selectorChannel.close();
-				synchronized (storedLocalSelectorChannels) {
-					storedLocalSelectorChannels.remove(selectorChannel);
-				}
+				remove(selectorChannel);
 			}
 			setNew(null);
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rough Exception this way
-			throwable.printStackTrace(System.out);
+		} catch (InterruptedException | IOException e) {
+			handle(e);
 		} finally {
-			mutex.unlock();
+			release();
 			System.out.println("[CLEAR_ALL] released mutex");
 		}
 	}
@@ -337,28 +344,59 @@ class Dispenser implements WorkloadDispenser {
 	public void remove(SocketChannel socketChannel) {
 		try {
 			System.out.println("[REMOVE] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[REMOVE] acquired mutex");
-			if(!active.get()) {
+			if(!operationsNeeded()) {
 				return;
 			}
 			LocalSelectorChannel localSelectorChannel = getSelectorChannel(socketChannel);
-			if(localSelectorChannel == null) {
+			if (localSelectorChannel == null) {
 				return;
 			}
 			clearFrom(socketChannel, localSelectorChannel);
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rough Exception this way
-			throwable.printStackTrace(System.out);
+		} catch (InterruptedException | IOException e) {
+			handle(e);
 		} finally {
-			mutex.unlock();
-			System.out.println("[REMOVE] released mutex");
+			release();
+		}
+	}
+
+	@Override
+	public boolean isEmpty() {
+		boolean empty;
+		synchronized (storedLocalSelectorChannels) {
+			empty = (storedLocalSelectorChannels.isEmpty());
+		}
+		return empty;
+	}
+
+	@Override
+	public void assignLowestSelectorChannel() {
+		try {
+			acquire();
+			if(!operationsNeeded()) {
+				return;
+			}
+			final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
+			LocalSelectorChannel lowest = null;
+
+			for (LocalSelectorChannel selectorChannel : selectorChannels) {
+				if (lowest == null) {
+					lowest = selectorChannel;
+				} else {
+					if (selectorChannel.getWorkload() < lowest.getWorkload()) {
+						lowest = selectorChannel;
+					}
+				}
+			}
+
+			if(lowest != null) {
+				setPointer(lowest);
+			}
+		} catch (InterruptedException e) {
+			handle(e);
+		} finally {
+			release();
 		}
 	}
 
@@ -377,50 +415,37 @@ class Dispenser implements WorkloadDispenser {
 	@Override
 	public int countConnectNodes() {
 		int size = 0;
+		final List<LocalSelectorChannel> selectorChannels = copySelectorChannels();
 		synchronized (storedLocalSelectorChannels) {
-			for(LocalSelectorChannel localSelectorChannel : storedLocalSelectorChannels) {
+			for (LocalSelectorChannel localSelectorChannel : selectorChannels) {
 				size += localSelectorChannel.getWorkload();
 			}
 		}
 		return size;
 	}
 
-	public void setBufferSize(Supplier<Integer> bufferSize) {
-		this.bufferSize = bufferSize;
-	}
-
-	public void setExecutorServiceSupplier(Supplier<ExecutorService> executorServiceSupplier) {
-		this.executorServiceSupplier = executorServiceSupplier;
-	}
-
-	public LocalSelectorChannel getOtherUsable() {
-		for (LocalSelectorChannel localSelectorChannel : storedLocalSelectorChannels) {
-			if (localSelectorChannel.getWorkload() < maxWorkload) {
-				return localSelectorChannel;
-			}
-		}
-		return null;
-	}
-
+	@Override
 	public void shutdown() {
 		try {
 			System.out.println("[SHUTDOWN] acquiring mutex");
-			mutex.lock();
+			acquire();
 			System.out.println("[SHUTDOWN] acquired mutex");
-			active.set(false);
-			final List<LocalSelectorChannel> copy;
-			synchronized (storedLocalSelectorChannels) {
-				copy = new ArrayList<>(storedLocalSelectorChannels);
+			if(!active.get()) {
+				return;
 			}
-			for(LocalSelectorChannel localSelectorChannel : copy) {
+			active.set(false);
+			final List<LocalSelectorChannel> copy = copySelectorChannels();
+			for (LocalSelectorChannel localSelectorChannel : copy) {
 				try {
 					localSelectorChannel.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					handle(e);
 				}
 			}
+		} catch (InterruptedException e) {
+			handle(e);
 		} finally {
-			mutex.unlock();
+			release();
 			System.out.println("[SHUTDOWN] released mutex");
 		}
 	}
@@ -469,7 +494,7 @@ class Dispenser implements WorkloadDispenser {
 
 		@Override
 		public void add(SocketChannel socketChannel) throws ClosedChannelException {
-			if(contains(socketChannel)) {
+			if (contains(socketChannel)) {
 				return;
 			}
 			synchronized (socketChannels) {
@@ -480,7 +505,7 @@ class Dispenser implements WorkloadDispenser {
 
 		@Override
 		public boolean contains(SocketChannel socketChannel) {
-			if(socketChannel == null) {
+			if (socketChannel == null) {
 				return false;
 			}
 			synchronized (socketChannels) {
@@ -489,15 +514,20 @@ class Dispenser implements WorkloadDispenser {
 		}
 
 		@Override
+		public boolean isOpen() {
+			return selector.isOpen();
+		}
+
+		@Override
 		public void remove(SocketChannel socketChannel) {
-			if(!contains(socketChannel)) {
+			if (!contains(socketChannel)) {
 				return;
 			}
 			synchronized (socketChannels) {
 				socketChannels.remove(socketChannel);
 			}
 			SelectionKey key = socketChannel.keyFor(selector);
-			if(key != null) {
+			if (key != null) {
 				key.cancel();
 			}
 		}
@@ -513,13 +543,13 @@ class Dispenser implements WorkloadDispenser {
 			synchronized (socketChannels) {
 				copy = new ArrayList<>(socketChannels);
 			}
-			for(SocketChannel socketChannel : copy) {
+			for (SocketChannel socketChannel : copy) {
 				remove(socketChannel);
 			}
 			receiveObjectListener.stop();
 			wakeup();
 			selector.close();
-			for(SocketChannel socketChannel : copy) {
+			for (SocketChannel socketChannel : copy) {
 				socketChannel.close();
 			}
 		}
