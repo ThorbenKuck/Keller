@@ -20,7 +20,7 @@ class NetworkHubImpl implements NetworkHub {
 	private Consumer<Exception> onException = e -> e.printStackTrace(System.out);
 	private NewConnectionListener connectionListener;
 	private Selector connectionSelector;
-	private ExecutorService executorService = Executors.newCachedThreadPool();
+	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 	private int bufferSize = 256;
 	private ServerSocketChannel channel;
 

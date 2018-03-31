@@ -16,9 +16,8 @@ import java.util.function.Supplier;
 
 class Dispenser implements WorkloadDispenser {
 
-	private final Set<SelectorInformation> storedInformation = new HashSet<>();
-	private final Map<SocketChannel, SelectorInformation> channelSelectorMap = new HashMap<>();
-	private final AtomicReference<SelectorInformation> pointer = new AtomicReference<>();
+	private final Set<SelectorChannel> storedSelectorChannels = new HashSet<>();
+	private final AtomicReference<SelectorChannel> pointer = new AtomicReference<>();
 	private final DisconnectedListener disconnectedListener;
 	private final ReceivedListener receivedListener;
 	private final Deserializer deserializer;
@@ -42,10 +41,10 @@ class Dispenser implements WorkloadDispenser {
 		active.set(true);
 	}
 
-	private void stop(SelectorInformation selector) {
+	private void stop(SelectorChannel selector) {
 		selector.getReceiveObjectListener().stop();
-		synchronized (storedInformation) {
-			storedInformation.remove(selector);
+		synchronized (storedSelectorChannels) {
+			storedSelectorChannels.remove(selector);
 		}
 		// This is so harsh..
 		// Why Oracle? Why
@@ -56,39 +55,39 @@ class Dispenser implements WorkloadDispenser {
 		selector.selector().wakeup();
 	}
 
-	private void start(SelectorInformation selector) {
+	private void start(SelectorChannel selector) {
 		executorServiceSupplier.get().submit(selector.getReceiveObjectListener());
 	}
 
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
-		SelectorInformation selectorInformation = pointer.get();
-		socketChannel.register(selectorInformation.selector(), SelectionKey.OP_READ);
-		synchronized (channelSelectorMap) {
-			channelSelectorMap.put(socketChannel, selectorInformation);
-		}
-		selectorInformation.incrementWorkload();
+		System.out.println("Selecting current pointer");
+		SelectorChannel selectorChannel = pointer.get();
+		System.out.println("Registering provided SocketChannel");
+		socketChannel.register(selectorChannel.selector(), SelectionKey.OP_READ);
+		System.out.println("Adding SocketChannel to SelectorChannel");
+		selectorChannel.add(socketChannel);
 	}
 
 	private boolean isCurrentUsable() throws IOException {
 		return pointer.get() != null && pointer.get().getWorkload() < maxWorkload;
 	}
 
-	private void setNew(SelectorInformation old) throws IOException {
+	private void setNew(SelectorChannel old) throws IOException {
 		if (old != null) {
-			synchronized (storedInformation) {
-				storedInformation.add(old);
+			synchronized (storedSelectorChannels) {
+				storedSelectorChannels.add(old);
 			}
 		}
 
-		SelectorInformation usable = getOtherUsable();
+		SelectorChannel usable = getOtherUsable();
 		if (usable != null) {
 			pointer.set(usable);
 		} else {
 			Selector selector = Selector.open();
-			final SelectorInformation information = new SelectorInformation(selector, createReceiveObjectListener(selector));
+			final SelectorChannel information = new SelectorChannel(selector, createReceiveObjectListener(selector));
 			pointer.set(information);
-			synchronized (storedInformation) {
-				storedInformation.add(information);
+			synchronized (storedSelectorChannels) {
+				storedSelectorChannels.add(information);
 			}
 			start(information);
 		}
@@ -99,16 +98,14 @@ class Dispenser implements WorkloadDispenser {
 	}
 
 	private void printCurrentStand() {
-		System.out.println("\n\n\nElements stored: " + countConnectNodes() + "(" + countReceivingSelectors() + ")\n\n\n");
+		System.out.println("\n\n\nElements stored: " + countConnectNodes() + "(" + countSelectorChannels() + ")\n\n\n");
 	}
 
-	private void clearFrom(SocketChannel socketChannel, SelectorInformation selectorInformation) {
-		socketChannel.keyFor(selectorInformation.selector()).cancel();
-		int newWorkload = selectorInformation.getWorkload() - 1;
+	private void clearFrom(SocketChannel socketChannel, SelectorChannel selectorChannel) {
+		selectorChannel.remove(socketChannel);
+		int newWorkload = selectorChannel.getWorkload();
 		if (newWorkload == 0) {
-			stop(selectorInformation);
-		} else {
-			selectorInformation.setWorkload(newWorkload);
+			stop(selectorChannel);
 		}
 //		printCurrentStand();
 	}
@@ -135,28 +132,42 @@ class Dispenser implements WorkloadDispenser {
 		}
 	}
 
-	private void unHookAll(Collection<SocketChannel> informationCollection) {
-		for(SocketChannel socketChannel : informationCollection) {
-			remove(socketChannel);
-			SelectorInformation selectorInformation;
-			synchronized (channelSelectorMap) {
-				selectorInformation = channelSelectorMap.remove(socketChannel);
-			}
-			clearFrom(socketChannel, selectorInformation);
+	private SelectorChannel getSelectorChannel(SocketChannel socketChannel) {
+		final List<SelectorChannel> selectorChannels;
+		synchronized (storedSelectorChannels) {
+			selectorChannels = new ArrayList<>(storedSelectorChannels);
 		}
+		for(SelectorChannel channel : selectorChannels) {
+			if(channel.contains(socketChannel)) {
+				return channel;
+			}
+		}
+		return null;
 	}
 
 	@Override
 	public void appeal(SocketChannel socketChannel) throws IOException {
 		try {
+			System.out.println("[APPEAL] acquiring mutex");
 			mutex.lock();
+			System.out.println("[APPEAL] acquired mutex");
 			if(!active.get()) {
+				System.out.println("Not active... returning..");
 				return;
 			}
-			if (!isCurrentUsable()) {
-				setNew(pointer.get());
+
+			if(getSelectorChannel(socketChannel) != null) {
+				System.out.println("[ERROR] SocketChannel already appealed!");
+				return;
 			}
 
+			if (!isCurrentUsable()) {
+				System.out.println("Current pointer is not usable! Updating..");
+				SelectorChannel current = pointer.get();
+				setNew(current);
+			}
+
+			System.out.println("Appealing on current");
 			appealOnCurrent(socketChannel);
 //			printCurrentStand();
 		} catch (Throwable throwable) {
@@ -170,6 +181,7 @@ class Dispenser implements WorkloadDispenser {
 			throwable.printStackTrace(System.out);
 		} finally {
 			mutex.unlock();
+			System.out.println("[APPEAL] released mutex");
 		}
 	}
 
@@ -177,31 +189,32 @@ class Dispenser implements WorkloadDispenser {
 	public List<SocketChannel> collectCorpses() {
 //		System.out.println("\n\nTrying to collect corpses ..\n\n");
 		final List<SocketChannel> socketChannels = new ArrayList<>();
+		if(!active.get()) {
+			System.out.println("Not active. Returning.");
+			return new ArrayList<>();
+		}
+		final List<SelectorChannel> keySet;
+		synchronized (storedSelectorChannels) {
+			if(storedSelectorChannels.isEmpty()) {
+				System.out.println("No running selector channels");
+				return socketChannels;
+			}
+			System.out.println("Copying stored selector channels");
+			keySet = new ArrayList<>(storedSelectorChannels);
+		}
 		try {
-			final Set<SocketChannel> keySet;
-			synchronized (channelSelectorMap) {
-				if(channelSelectorMap.isEmpty()) {
-					return socketChannels;
-				}
-				keySet = channelSelectorMap.keySet();
-			}
+			System.out.println("[COLLECT_CORPSES] acquiring mutex");
 			mutex.lock();
-			if(!active.get()) {
-				return new ArrayList<>();
-			}
-			for (SocketChannel socketChannel : keySet) {
-//				System.out.println("Looking at: " + socketChannel);
-				if (!socketChannel.isConnected() || !socketChannel.isOpen()) {
-//					System.err.println("Found corpse");
-					SelectorInformation information;
-					synchronized (channelSelectorMap) {
-						information = channelSelectorMap.get(socketChannel);
+			System.out.println("[COLLECT_CORPSES] acquired mutex");
+			System.out.println("Searching in " + keySet);
+			for (SelectorChannel selectorChannel : keySet) {
+				for(SocketChannel socketChannel : selectorChannel) {
+					System.out.println("Looking at: " + socketChannel);
+					if (!socketChannel.isConnected() || !socketChannel.isOpen()) {
+						System.out.println("Found corpse");
+						socketChannels.add(socketChannel);
+						clearFrom(socketChannel, selectorChannel);
 					}
-					if(information == null) {
-						throw new ConcurrentModificationException();
-					}
-					socketChannels.add(socketChannel);
-					clearFrom(socketChannel, information);
 				}
 			}
 		} catch (Throwable throwable) {
@@ -215,74 +228,25 @@ class Dispenser implements WorkloadDispenser {
 			throwable.printStackTrace(System.out);
 		}  finally {
 			mutex.unlock();
+			System.out.println("[COLLECT_CORPSES] released mutex");
 		}
 		return socketChannels;
 	}
 
 	@Override
-	public void redistributeSelectors() throws IOException {
-		final List<SocketChannel> toWorkOn = new ArrayList<>();
-		try {
-			mutex.lock();
-			if(!active.get()) {
-				return;
-			}
-			final Set<SocketChannel> keySet;
-			synchronized (channelSelectorMap) {
-				if(channelSelectorMap.isEmpty()) {
-					return;
-				}
-				keySet = channelSelectorMap.keySet();
-			}
-
-			for(SocketChannel socketChannel : keySet) {
-				SelectorInformation information;
-				synchronized (channelSelectorMap) {
-					information = channelSelectorMap.get(socketChannel);
-				}
-				if(information == null) {
-					throw new ConcurrentModificationException();
-				}
-				if(information.getWorkload() < maxWorkload) {
-					continue;
-				}
-				toWorkOn.add(socketChannel);
-			}
-			if(toWorkOn.isEmpty()) {
-				return;
-			}
-//			System.out.println("Will now unhook " + toWorkOn);
-			unHookAll(toWorkOn);
-			appealAll(toWorkOn);
-		} catch (Throwable throwable) {
-			// This check is needed, because
-			// something appears to be wrong
-			// at the current time.. After
-			// a certain time, the server simply
-			// stops, without warning, without
-			// Exception, nothing. Maybe, we will
-			// catch a rouge Exception this way
-			throwable.printStackTrace(System.out);
-		}  finally {
-			mutex.unlock();
-		}
-	}
-
-	@Override
 	public void remove(SocketChannel socketChannel) {
 		try {
+			System.out.println("[REMOVE] acquiring mutex");
 			mutex.lock();
+			System.out.println("[REMOVE] acquired mutex");
 			if(!active.get()) {
 				return;
 			}
-			SelectorInformation selectorInformation;
-			synchronized (channelSelectorMap) {
-				if(channelSelectorMap.isEmpty()) {
-					return;
-				}
-				selectorInformation = channelSelectorMap.remove(socketChannel);
+			SelectorChannel selectorChannel = getSelectorChannel(socketChannel);
+			if(selectorChannel == null) {
+				return;
 			}
-			clearFrom(socketChannel, selectorInformation);
+			clearFrom(socketChannel, selectorChannel);
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -294,6 +258,7 @@ class Dispenser implements WorkloadDispenser {
 			throwable.printStackTrace(System.out);
 		} finally {
 			mutex.unlock();
+			System.out.println("[REMOVE] released mutex");
 		}
 	}
 
@@ -303,17 +268,21 @@ class Dispenser implements WorkloadDispenser {
 	}
 
 	@Override
-	public int countReceivingSelectors() {
-		synchronized (storedInformation) {
-			return storedInformation.size();
+	public int countSelectorChannels() {
+		synchronized (storedSelectorChannels) {
+			return storedSelectorChannels.size();
 		}
 	}
 
 	@Override
 	public int countConnectNodes() {
-		synchronized (channelSelectorMap) {
-			return channelSelectorMap.size();
+		int size = 0;
+		synchronized (storedSelectorChannels) {
+			for(SelectorChannel selectorChannel : storedSelectorChannels) {
+				size += selectorChannel.getWorkload();
+			}
 		}
+		return size;
 	}
 
 	public void setBufferSize(Supplier<Integer> bufferSize) {
@@ -324,10 +293,10 @@ class Dispenser implements WorkloadDispenser {
 		this.executorServiceSupplier = executorServiceSupplier;
 	}
 
-	public SelectorInformation getOtherUsable() {
-		for (SelectorInformation selectorInformation : storedInformation) {
-			if (selectorInformation.getWorkload() < maxWorkload) {
-				return selectorInformation;
+	public SelectorChannel getOtherUsable() {
+		for (SelectorChannel selectorChannel : storedSelectorChannels) {
+			if (selectorChannel.getWorkload() < maxWorkload) {
+				return selectorChannel;
 			}
 		}
 		return null;
@@ -335,49 +304,34 @@ class Dispenser implements WorkloadDispenser {
 
 	public void shutdown() {
 		try {
+			System.out.println("[SHUTDOWN] acquiring mutex");
 			mutex.lock();
+			System.out.println("[SHUTDOWN] acquired mutex");
 			active.set(false);
-			final Set<SelectorInformation> selectorInformations = new HashSet<>();
-			Set<SocketChannel> keySet;
-			synchronized (channelSelectorMap) {
-				keySet = channelSelectorMap.keySet();
+			final List<SelectorChannel> copy;
+			synchronized (storedSelectorChannels) {
+				copy = new ArrayList<>(storedSelectorChannels);
 			}
-			for(SocketChannel channel : keySet) {
+			for(SelectorChannel selectorChannel : copy) {
 				try {
-					channel.close();
+					selectorChannel.close();
 				} catch (IOException e) {
-					exceptionConsumer.accept(e);
-				}
-
-				SelectorInformation information;
-				synchronized (channelSelectorMap) {
-					information = channelSelectorMap.remove(channel);
-				}
-				clearFrom(channel, information);
-				selectorInformations.add(information);
-			}
-
-			for(SelectorInformation information : selectorInformations) {
-				information.selector().wakeup();
-				try {
-					information.selector().close();
-				} catch (IOException e) {
-					exceptionConsumer.accept(e);
+					e.printStackTrace();
 				}
 			}
 		} finally {
 			mutex.unlock();
+			System.out.println("[SHUTDOWN] released mutex");
 		}
 	}
 
-	private final class SelectorInformation {
+	private final class SelectorChannel implements Iterable<SocketChannel> {
 
-		private final Lock workloadLock = new ReentrantLock(true);
 		private final Selector selector;
 		private final ReceiveObjectListener receiveObjectListener;
-		private int workload = 0;
+		private final List<SocketChannel> socketChannels = new ArrayList<>();
 
-		private SelectorInformation(Selector selector, ReceiveObjectListener receiveObjectListener) {
+		private SelectorChannel(Selector selector, ReceiveObjectListener receiveObjectListener) {
 			this.selector = selector;
 			this.receiveObjectListener = receiveObjectListener;
 		}
@@ -386,38 +340,123 @@ class Dispenser implements WorkloadDispenser {
 			return selector;
 		}
 
-		public int getWorkload() {
-			return workload;
-		}
-
-		public void setWorkload(int workload) {
-			this.workload = workload;
-		}
-
-		public void incrementWorkload() {
-			try {
-				workloadLock.lock();
-				++workload;
-			} finally {
-				workloadLock.unlock();
-			}
-		}
-
-		public void decrementWorkload() {
-			try {
-				workloadLock.lock();
-				--workload;
-
-				if (workload <= 0) {
-					workload = 0;
-				}
-			} finally {
-				workloadLock.unlock();
-			}
-		}
-
 		public ReceiveObjectListener getReceiveObjectListener() {
 			return receiveObjectListener;
+		}
+
+		public int getWorkload() {
+			synchronized (socketChannels) {
+				return socketChannels.size();
+			}
+		}
+
+		public void add(SocketChannel socketChannel) throws ClosedChannelException {
+			if(contains(socketChannel)) {
+				return;
+			}
+			synchronized (socketChannels) {
+				socketChannels.add(socketChannel);
+			}
+			socketChannel.register(selector, SelectionKey.OP_READ);
+		}
+
+		public boolean contains(SocketChannel socketChannel) {
+			if(socketChannel == null) {
+				return false;
+			}
+			synchronized (socketChannels) {
+				return socketChannels.contains(socketChannel);
+			}
+		}
+
+		public void remove(SocketChannel socketChannel) {
+			if(!contains(socketChannel)) {
+				return;
+			}
+			synchronized (socketChannels) {
+				socketChannels.remove(socketChannel);
+			}
+			SelectionKey key = socketChannel.keyFor(selector);
+			if(key != null) {
+				key.cancel();
+			}
+		}
+
+		public void wakeup() {
+			selector.wakeup();
+		}
+
+		public void close() throws IOException {
+			final List<SocketChannel> copy;
+			synchronized (socketChannels) {
+				copy = new ArrayList<>(socketChannels);
+			}
+			for(SocketChannel socketChannel : copy) {
+				remove(socketChannel);
+			}
+			receiveObjectListener.stop();
+			wakeup();
+			selector.close();
+			for(SocketChannel socketChannel : copy) {
+				socketChannel.close();
+			}
+		}
+
+		public List<SocketChannel> getSocketChannels() {
+			synchronized (socketChannels) {
+				return new ArrayList<>(socketChannels);
+			}
+		}
+
+		/**
+		 * Returns an iterator over elements of type {@code T}.
+		 *
+		 * @return an Iterator.
+		 */
+		@Override
+		public synchronized Iterator<SocketChannel> iterator() {
+			synchronized (socketChannels) {
+				return new SocketChannelIterator(socketChannels);
+			}
+		}
+
+		@Override
+		public String toString() {
+			synchronized (socketChannels) {
+				return "SelectorChannel{" + selector + ", " + socketChannels.toString() + "}";
+			}
+		}
+
+		private final class SocketChannelIterator implements Iterator<SocketChannel> {
+
+			private final Queue<SocketChannel> channels;
+
+			private SocketChannelIterator(Collection<SocketChannel> channels) {
+				this.channels = new LinkedList<>(channels);
+			}
+
+			/**
+			 * Returns {@code true} if the iteration has more elements.
+			 * (In other words, returns {@code true} if {@link #next} would
+			 * return an element rather than throwing an exception.)
+			 *
+			 * @return {@code true} if the iteration has more elements
+			 */
+			@Override
+			public boolean hasNext() {
+				return channels.peek() != null;
+			}
+
+			/**
+			 * Returns the next element in the iteration.
+			 *
+			 * @return the next element in the iteration
+			 * @throws NoSuchElementException if the iteration has no more elements
+			 */
+			@Override
+			public SocketChannel next() {
+				return channels.poll();
+			}
 		}
 	}
 }

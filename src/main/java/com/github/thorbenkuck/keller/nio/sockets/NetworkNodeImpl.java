@@ -2,6 +2,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -13,7 +14,7 @@ import java.util.function.Function;
 
 class NetworkNodeImpl implements NetworkNode {
 
-	private ExecutorService executorService = Executors.newCachedThreadPool();
+	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
 	private final Sender sender = new Sender();
 	private int bufferSize = 256;
 	private SocketChannel channel;
@@ -76,7 +77,15 @@ class NetworkNodeImpl implements NetworkNode {
 
 	@Override
 	public void send(Object object) throws IOException {
-		sender.send(object, channel);
+		if(!isOpen()) {
+			return;
+		}
+		try {
+			sender.send(object, channel);
+		} catch (ClosedChannelException c) {
+			disconnectedListener.handle(channel);
+			throw c;
+		}
 	}
 
 	@Override

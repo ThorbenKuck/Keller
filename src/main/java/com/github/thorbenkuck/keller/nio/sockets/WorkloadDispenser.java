@@ -9,13 +9,11 @@ public interface WorkloadDispenser {
 
 	List<SocketChannel> collectCorpses();
 
-	void redistributeSelectors() throws IOException;
-
 	void remove(SocketChannel socketChannel);
 
 	void setMaxWorkload(int to);
 
-	int countReceivingSelectors();
+	int countSelectorChannels();
 
 	int countConnectNodes();
 }

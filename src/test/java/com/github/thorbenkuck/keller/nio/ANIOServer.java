@@ -3,11 +3,14 @@ package com.github.thorbenkuck.keller.nio;
 import com.github.thorbenkuck.keller.nio.sockets.Message;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkHub;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkHubFactory;
+import com.github.thorbenkuck.keller.nio.sockets.WorkloadDispenser;
 
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,9 +21,30 @@ public class ANIOServer {
 
 	private static final Map<SocketChannel, Integer> receivedCounter = new HashMap<>();
 	private static final AtomicInteger failed = new AtomicInteger(0);
+	private static final List<Throwable> encountered = new ArrayList<>();
+	private static WorkloadDispenser workloadDispenser;
+
+	private static void addException(Throwable e) {
+		synchronized (encountered) {
+			encountered.add(e);
+		}
+	}
+
+	private static void printExceptions() {
+		synchronized (encountered) {
+			for(Throwable exception : encountered) {
+				exception.printStackTrace(System.out);
+				System.out.println("\n\n");
+			}
+		}
+	}
 
 	private static void received(Message message) {
-		System.out.println(message.getContent());
+		if(message == null) {
+			System.out.println("... received null message ...");
+			return;
+		}
+		System.out.println("Received: " + message.getContent());
 		synchronized (receivedCounter) {
 			int current = receivedCounter.getOrDefault(message.getChannel(), 0);
 			receivedCounter.put(message.getChannel(), ++current);
@@ -29,6 +53,14 @@ public class ANIOServer {
 
 	private static void disconnected(SocketChannel channel) {
 		int count;
+		if(channel == null) {
+			return;
+		}
+		try {
+			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + ")");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		synchronized (receivedCounter) {
 			count = receivedCounter.remove(channel);
 		}
@@ -48,11 +80,13 @@ public class ANIOServer {
 			out = System.err;
 		}
 		out.println("Failed " + failed.get() + " times!");
+
+		printExceptions();
 	}
 
 	public static void main(String[] args) {
 		Runtime.getRuntime().addShutdownHook(new Thread(ANIOServer::printFails));
-		Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> addException(e));
 		ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
 
 		NetworkHub hub = NetworkHubFactory.create()
@@ -60,9 +94,12 @@ public class ANIOServer {
 				.deserializer(new JavaDeserializer())
 				.onObjectReceive(ANIOServer::received)
 				.onDisconnect(ANIOServer::disconnected)
+				.onException(ANIOServer::addException)
 				.bufferSize(1024)
-				.workloadPerSelector(1000)
+				.workloadPerSelector(40)
 				.build();
+
+		workloadDispenser = hub.workloadDispenser();
 
 		try {
 			hub.addConnectedListener(socketChannel -> {
@@ -97,7 +134,13 @@ public class ANIOServer {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		scheduledExecutorService.scheduleAtFixedRate(hub.workloadDispenser()::collectCorpses, 10, 10, TimeUnit.SECONDS);
+		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 10, 10, TimeUnit.SECONDS);
+	}
+
+	private static void collect(WorkloadDispenser workloadDispenser) {
+		System.out.println("COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
+		workloadDispenser.collectCorpses();
+		System.out.println("COLLECTING_CORPSES finished");
 	}
 
 }

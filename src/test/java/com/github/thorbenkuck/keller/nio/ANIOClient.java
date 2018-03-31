@@ -2,32 +2,44 @@ package com.github.thorbenkuck.keller.nio;
 
 import com.github.thorbenkuck.keller.nio.sockets.NetworkNode;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkNodeFactory;
+import javafx.application.Platform;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class ANIOClient {
 
+	private final int myCount;
+
+	private void disconnect() {
+		System.out.println(myCount + " disconnected ..");
+		decreaseCount();
+	}
+
 	public ANIOClient(int count) {
+		this.myCount = count;
 		NetworkNode node = NetworkNodeFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
 				.onObjectReceive(System.out::println)
-				.onDisconnect(channel -> decreaseCount())
+				.onDisconnect(channel -> disconnect())
+				.onException(ANIOClient::addException)
 				.build();
 
 		try {
 			node.open("localhost", 4444);
 		} catch (IOException e) {
-			System.out.println(count + " could not connect!");
+			System.out.println(myCount + " could not connect!");
 			decreaseCount();
 			return;
 		}
 
-		System.out.println(count + " connected!");
+		System.out.println("Connected: " + myCount);
 
 		ArrayList<String> companyDetails = new ArrayList<>();
 
@@ -42,7 +54,7 @@ public class ANIOClient {
 			try {
 				node.send(new TestObject(companyName));
 			} catch (IOException e) {
-				e.printStackTrace();
+				disconnect();
 			}
 
 			// wait for 2 seconds before sending next message
@@ -58,11 +70,27 @@ public class ANIOClient {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println(count + " closed: " + !node.isOpen());
+		System.out.println("Disconnected " + myCount);
 		decreaseCount();
 	}
 
-	static int count = 0;
+	private static int count = 0;
+	private static final List<Throwable> encountered = new ArrayList<>();
+
+	private static void addException(Throwable e) {
+		synchronized (encountered) {
+			encountered.add(e);
+		}
+	}
+
+	private static void printExceptions() {
+		synchronized (encountered) {
+			for(Throwable exception : encountered) {
+				exception.printStackTrace(System.out);
+				System.out.println("\n\n");
+			}
+		}
+	}
 
 	public static void decreaseCount() {
 		synchronized (ANIOClient.class) {
@@ -77,15 +105,17 @@ public class ANIOClient {
 	}
 
 	public static void main(String[] args) {
-		Thread.setDefaultUncaughtExceptionHandler((t, e) -> e.printStackTrace(System.out));
+		Runtime.getRuntime().addShutdownHook(new Thread(ANIOClient::printExceptions));
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> addException(e));
 		ExecutorService executorService = Executors.newCachedThreadPool();
+		final ThreadLocalRandom random = ThreadLocalRandom.current();
 
 		while(true) {
 			increaseCount();
 			int finalCount = count;
 			executorService.submit(() -> new ANIOClient(finalCount));
 			try {
-				Thread.sleep(ThreadLocalRandom.current().nextInt(1000, 2000));
+				Thread.sleep(random.nextInt(10, 100));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

@@ -9,6 +9,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -48,11 +49,12 @@ public class ReceiveObjectListener implements Runnable {
 	 */
 	@Override
 	public void run() {
+		System.out.println("Receive Listener connected");
 		running.set(true);
 		try {
 			while (running.get()) {
 				try {
-					selector.select();
+					selector.select(400);
 					handle(selector.selectedKeys());
 				} catch (IOException e) {
 					onException.accept(e);

@@ -37,6 +37,9 @@ class ReceivedBytesHandler {
 	}
 
 	private void handle(ByteBuffer buffer, SocketChannel channel, StringBuilder resultBuilder, Consumer<SocketChannel> disconnected) throws IOException {
+		if(!channel.isConnected() || !channel.isOpen()) {
+			return;
+		}
 		int read = channel.read(buffer);
 		while(read != 0) {
 			if(-1 == read) {
