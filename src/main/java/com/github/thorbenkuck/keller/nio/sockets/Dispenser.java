@@ -7,9 +7,11 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 class Dispenser implements WorkloadDispenser {
@@ -20,20 +22,24 @@ class Dispenser implements WorkloadDispenser {
 	private final DisconnectedListener disconnectedListener;
 	private final ReceivedListener receivedListener;
 	private final Deserializer deserializer;
+	private final AtomicBoolean active = new AtomicBoolean(false);
 	private final Lock mutex = new ReentrantLock(true);
+	private final Consumer<Exception> exceptionConsumer;
 	private Supplier<Integer> bufferSize;
 	private Supplier<ExecutorService> executorServiceSupplier;
 	private int maxWorkload;
 
-	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer) {
-		this(disconnectedListener, receivedListener, deserializer, 1024);
+	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer) {
+		this(disconnectedListener, receivedListener, deserializer, consumer, 1024);
 	}
 
-	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, int maxWorkload) {
+	Dispenser(DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Consumer<Exception> consumer, int maxWorkload) {
 		this.disconnectedListener = disconnectedListener;
 		this.receivedListener = receivedListener;
 		this.deserializer = deserializer;
+		exceptionConsumer = consumer;
 		this.maxWorkload = maxWorkload;
+		active.set(true);
 	}
 
 	private void stop(SelectorInformation selector) {
@@ -89,7 +95,7 @@ class Dispenser implements WorkloadDispenser {
 	}
 
 	private ReceiveObjectListener createReceiveObjectListener(Selector selector) {
-		return new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deserializer, bufferSize, executorServiceSupplier);
+		return new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deserializer, bufferSize, executorServiceSupplier, exceptionConsumer);
 	}
 
 	private void printCurrentStand() {
@@ -104,14 +110,18 @@ class Dispenser implements WorkloadDispenser {
 		} else {
 			selectorInformation.setWorkload(newWorkload);
 		}
-		printCurrentStand();
+//		printCurrentStand();
 	}
 
 	private void appealAll(Collection<SocketChannel> channels) throws IOException {
 		IOException exception = null;
 		for(SocketChannel socketChannel : channels) {
 			try {
-				appeal(socketChannel);
+				if (!isCurrentUsable()) {
+					setNew(pointer.get());
+				}
+
+				appealOnCurrent(socketChannel);
 			} catch (IOException e) {
 				if(exception == null) {
 					exception = e;
@@ -128,6 +138,11 @@ class Dispenser implements WorkloadDispenser {
 	private void unHookAll(Collection<SocketChannel> informationCollection) {
 		for(SocketChannel socketChannel : informationCollection) {
 			remove(socketChannel);
+			SelectorInformation selectorInformation;
+			synchronized (channelSelectorMap) {
+				selectorInformation = channelSelectorMap.remove(socketChannel);
+			}
+			clearFrom(socketChannel, selectorInformation);
 		}
 	}
 
@@ -135,12 +150,15 @@ class Dispenser implements WorkloadDispenser {
 	public void appeal(SocketChannel socketChannel) throws IOException {
 		try {
 			mutex.lock();
+			if(!active.get()) {
+				return;
+			}
 			if (!isCurrentUsable()) {
 				setNew(pointer.get());
 			}
 
 			appealOnCurrent(socketChannel);
-			printCurrentStand();
+//			printCurrentStand();
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -157,7 +175,7 @@ class Dispenser implements WorkloadDispenser {
 
 	@Override
 	public List<SocketChannel> collectCorpses() {
-		System.out.println("\n\nTrying to collect corpses ..\n\n");
+//		System.out.println("\n\nTrying to collect corpses ..\n\n");
 		final List<SocketChannel> socketChannels = new ArrayList<>();
 		try {
 			final Set<SocketChannel> keySet;
@@ -168,10 +186,13 @@ class Dispenser implements WorkloadDispenser {
 				keySet = channelSelectorMap.keySet();
 			}
 			mutex.lock();
+			if(!active.get()) {
+				return new ArrayList<>();
+			}
 			for (SocketChannel socketChannel : keySet) {
-				System.out.println("Looking at: " + socketChannel);
+//				System.out.println("Looking at: " + socketChannel);
 				if (!socketChannel.isConnected() || !socketChannel.isOpen()) {
-					System.err.println("Found corpse");
+//					System.err.println("Found corpse");
 					SelectorInformation information;
 					synchronized (channelSelectorMap) {
 						information = channelSelectorMap.get(socketChannel);
@@ -203,6 +224,9 @@ class Dispenser implements WorkloadDispenser {
 		final List<SocketChannel> toWorkOn = new ArrayList<>();
 		try {
 			mutex.lock();
+			if(!active.get()) {
+				return;
+			}
 			final Set<SocketChannel> keySet;
 			synchronized (channelSelectorMap) {
 				if(channelSelectorMap.isEmpty()) {
@@ -227,8 +251,9 @@ class Dispenser implements WorkloadDispenser {
 			if(toWorkOn.isEmpty()) {
 				return;
 			}
-			System.out.println("Will now unhook " + toWorkOn);
+//			System.out.println("Will now unhook " + toWorkOn);
 			unHookAll(toWorkOn);
+			appealAll(toWorkOn);
 		} catch (Throwable throwable) {
 			// This check is needed, because
 			// something appears to be wrong
@@ -241,13 +266,15 @@ class Dispenser implements WorkloadDispenser {
 		}  finally {
 			mutex.unlock();
 		}
-		appealAll(toWorkOn);
 	}
 
 	@Override
 	public void remove(SocketChannel socketChannel) {
 		try {
 			mutex.lock();
+			if(!active.get()) {
+				return;
+			}
 			SelectorInformation selectorInformation;
 			synchronized (channelSelectorMap) {
 				if(channelSelectorMap.isEmpty()) {
@@ -304,6 +331,43 @@ class Dispenser implements WorkloadDispenser {
 			}
 		}
 		return null;
+	}
+
+	public void shutdown() {
+		try {
+			mutex.lock();
+			active.set(false);
+			final Set<SelectorInformation> selectorInformations = new HashSet<>();
+			Set<SocketChannel> keySet;
+			synchronized (channelSelectorMap) {
+				keySet = channelSelectorMap.keySet();
+			}
+			for(SocketChannel channel : keySet) {
+				try {
+					channel.close();
+				} catch (IOException e) {
+					exceptionConsumer.accept(e);
+				}
+
+				SelectorInformation information;
+				synchronized (channelSelectorMap) {
+					information = channelSelectorMap.remove(channel);
+				}
+				clearFrom(channel, information);
+				selectorInformations.add(information);
+			}
+
+			for(SelectorInformation information : selectorInformations) {
+				information.selector().wakeup();
+				try {
+					information.selector().close();
+				} catch (IOException e) {
+					exceptionConsumer.accept(e);
+				}
+			}
+		} finally {
+			mutex.unlock();
+		}
 	}
 
 	private final class SelectorInformation {

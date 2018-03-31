@@ -10,13 +10,13 @@ class LocalNetworkHubFactory implements NetworkHubFactory {
 	private NetworkHubImpl networkListener = new NetworkHubImpl();
 
 	@Override
-	public NetworkHubFactory ifObjectArrives(Consumer<Message> consumer) {
+	public NetworkHubFactory onObjectReceive(Consumer<Message> consumer) {
 		networkListener.addReceivedListener(consumer);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory ifClientConnects(Consumer<SocketChannel> consumer) {
+	public NetworkHubFactory onConnect(Consumer<SocketChannel> consumer) {
 		networkListener.addConnectedListener(consumer);
 		return this;
 	}
@@ -28,13 +28,19 @@ class LocalNetworkHubFactory implements NetworkHubFactory {
 	}
 
 	@Override
-	public NetworkHubFactory setExecutorService(ExecutorService executorService) {
+	public NetworkHubFactory executorService(ExecutorService executorService) {
 		networkListener.setExecutorService(executorService);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory setBufferSize(int bufferSize) {
+	public NetworkHubFactory onException(Consumer<Exception> ex) {
+		networkListener.setOnException(ex);
+		return this;
+	}
+
+	@Override
+	public NetworkHubFactory bufferSize(int bufferSize) {
 		networkListener.setBufferSize(bufferSize);
 		return this;
 	}

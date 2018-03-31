@@ -22,6 +22,7 @@ class NetworkNodeImpl implements NetworkNode {
 	private final Deserializer deSerializer = new Deserializer();
 	private Selector selector;
 	private ReceiveObjectListener worker;
+	private Consumer<Exception> exceptionConsumer = e -> e.printStackTrace(System.out);
 
 	@Override
 	public void open(final String string, int port) throws IOException {
@@ -35,7 +36,7 @@ class NetworkNodeImpl implements NetworkNode {
 		selector = Selector.open();
 		channel.register(selector, SelectionKey.OP_READ, null);
 		disconnectedListener.addFirst(this::handleDisconnect);
-		worker = new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService);
+		worker = new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService, this::consume);
 		executorService.submit(worker);
 	}
 
@@ -57,12 +58,20 @@ class NetworkNodeImpl implements NetworkNode {
 		return executorService;
 	}
 
+	private void consume(Exception e) {
+		exceptionConsumer.accept(e);
+	}
+
 	void setExecutorService(final ExecutorService executorService) {
 		this.executorService = executorService;
 	}
 
 	void setBufferSize(final int bufferSize) {
 		this.bufferSize = bufferSize;
+	}
+
+	void setExceptionConsumer(Consumer<Exception> consumer) {
+		this.exceptionConsumer = consumer;
 	}
 
 	@Override

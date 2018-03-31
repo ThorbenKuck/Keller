@@ -10,6 +10,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 public class ReceiveObjectListener implements Runnable {
@@ -20,16 +21,18 @@ public class ReceiveObjectListener implements Runnable {
 	private final ReceivedListener receivedListener;
 	private final DisconnectedListener disconnectedListener;
 	private final Deserializer deserializer;
+	private final Consumer<Exception> onException;
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private final ReceivedBytesHandler receivedBytesHandler = new ReceivedBytesHandler();
 
-	public ReceiveObjectListener(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> bufferSize, Supplier<ExecutorService> executorService) {
+	public ReceiveObjectListener(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> bufferSize, Supplier<ExecutorService> executorService, Consumer<Exception> onException) {
 		this.selector = selector;
 		this.executorService = executorService;
 		this.bufferSize = bufferSize;
 		this.receivedListener = receivedListener;
 		this.disconnectedListener = disconnectedListener;
 		this.deserializer = deserializer;
+		this.onException = onException;
 	}
 
 	/**
@@ -49,17 +52,17 @@ public class ReceiveObjectListener implements Runnable {
 		try {
 			while (running.get()) {
 				try {
-					System.out.println("Awaiting received objects");
 					selector.select();
 					handle(selector.selectedKeys());
 				} catch (IOException e) {
-					e.printStackTrace(System.out);
+					onException.accept(e);
 					stop();
 				}
 			}
 		} catch (Throwable throwable) {
 			throwable.printStackTrace(System.out);
 		}
+		// TODO change to callback? Or don't care? IDK...
 		System.out.println("Receive Listener disconnected");
 	}
 
@@ -68,7 +71,6 @@ public class ReceiveObjectListener implements Runnable {
 		final Queue<Message> received = new LinkedList<>();
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
-			System.out.println("Handling readable: " + key.isReadable());
 			if (!key.isValid()) {
 				SocketChannel channel = (SocketChannel) key.channel();
 				handleDisconnected(channel);
@@ -77,7 +79,7 @@ public class ReceiveObjectListener implements Runnable {
 
 			if (key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
-				receivedBytesHandler.handle(sender, this::handleDisconnected, bufferSize, deserializer, received);
+				receivedBytesHandler.handle(sender, this::handleDisconnected, bufferSize, deserializer, received, onException);
 			}
 			iterator.remove();
 		}
@@ -89,8 +91,8 @@ public class ReceiveObjectListener implements Runnable {
 		disconnectedListener.handle(channel);
 		try {
 			channel.close();
-		} catch (IOException e1) {
-			e1.printStackTrace();
+		} catch (IOException e) {
+			onException.accept(e);
 		}
 	}
 

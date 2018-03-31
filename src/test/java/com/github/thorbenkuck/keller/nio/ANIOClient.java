@@ -15,14 +15,14 @@ public class ANIOClient {
 		NetworkNode node = NetworkNodeFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
-				.ifObjectArrives(System.out::println)
+				.onObjectReceive(System.out::println)
 				.onDisconnect(channel -> decreaseCount())
 				.build();
 
 		try {
 			node.open("localhost", 4444);
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(count + " could not connect!");
 			decreaseCount();
 			return;
 		}
@@ -85,7 +85,7 @@ public class ANIOClient {
 			int finalCount = count;
 			executorService.submit(() -> new ANIOClient(finalCount));
 			try {
-				Thread.sleep(ThreadLocalRandom.current().nextInt(1, 10));
+				Thread.sleep(ThreadLocalRandom.current().nextInt(1000, 2000));
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

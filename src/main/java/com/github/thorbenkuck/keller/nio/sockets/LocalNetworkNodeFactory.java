@@ -12,31 +12,32 @@ class LocalNetworkNodeFactory implements NetworkNodeFactory {
 	private NetworkNodeImpl networkWorker = new NetworkNodeImpl();
 
 	@Override
-	public NetworkNodeFactory ifObjectArrives(Consumer<Message> consumer) {
+	public NetworkNodeFactory onObjectReceive(Consumer<Message> consumer) {
 		networkWorker.addReceivedListener(consumer);
-
 		return this;
 	}
 
 	@Experimental
 	@Override
 	public NetworkNodeFactory onDisconnect(Consumer<SocketChannel> consumer) {
-		// There is currently
-		// No way, to detect
-		// this.. Who the hell
-		// designed this API?!
+		// TODO
 		return this;
 	}
 
 	@Override
-	public NetworkNodeFactory setExecutorService(ExecutorService executorService) {
+	public NetworkNodeFactory executorService(ExecutorService executorService) {
 		networkWorker.setExecutorService(executorService);
-
 		return this;
 	}
 
 	@Override
-	public NetworkNodeFactory setBufferSize(int bufferSize) {
+	public NetworkNodeFactory onException(Consumer<Exception> ex) {
+		networkWorker.setExceptionConsumer(ex);
+		return this;
+	}
+
+	@Override
+	public NetworkNodeFactory bufferSize(int bufferSize) {
 		networkWorker.setBufferSize(bufferSize);
 
 		return this;
