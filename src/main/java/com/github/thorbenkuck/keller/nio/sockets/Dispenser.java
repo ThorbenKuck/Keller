@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
+import com.github.thorbenkuck.keller.datatypes.ConcurrentIterator;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
@@ -44,15 +46,6 @@ class Dispenser implements WorkloadDispenser {
 		active.set(true);
 	}
 
-	private void stop(SelectorChannel selector) throws IOException {
-		selector.close();
-		if(selector.getClass().equals(LocalSelectorChannel.class)) {
-			synchronized (storedLocalSelectorChannels) {
-				storedLocalSelectorChannels.remove((LocalSelectorChannel) selector);
-			}
-		}
-	}
-
 	private void start(LocalSelectorChannel selector) {
 		executorServiceSupplier.get().submit(selector.getReceiveObjectListener());
 	}
@@ -60,8 +53,6 @@ class Dispenser implements WorkloadDispenser {
 	private void appealOnCurrent(SocketChannel socketChannel) throws ClosedChannelException {
 		System.out.println("Selecting current pointer");
 		LocalSelectorChannel localSelectorChannel = pointer.get();
-		System.out.println("Registering provided SocketChannel");
-		socketChannel.register(localSelectorChannel.selector(), SelectionKey.OP_READ);
 		System.out.println("Adding SocketChannel to LocalSelectorChannel");
 		localSelectorChannel.add(socketChannel);
 	}
@@ -102,15 +93,11 @@ class Dispenser implements WorkloadDispenser {
 		return new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deserializer, bufferSize, executorServiceSupplier, exceptionConsumer);
 	}
 
-	private void printCurrentStand() {
-		System.out.println("\n\n\nElements stored: " + countConnectNodes() + "(" + countSelectorChannels() + ")\n\n\n");
-	}
-
 	private void clearFrom(SocketChannel socketChannel, SelectorChannel localSelectorChannel) throws IOException {
 		localSelectorChannel.remove(socketChannel);
 		int newWorkload = localSelectorChannel.getWorkload();
 		if (newWorkload == 0) {
-			stop(localSelectorChannel);
+			localSelectorChannel.close();
 		}
 //		printCurrentStand();
 	}
@@ -284,7 +271,7 @@ class Dispenser implements WorkloadDispenser {
 							selectorChannel.remove(socketChannel);
 							socketChannels.add(socketChannel);
 						}
-					} catch (ClosedChannelException e) {
+					} catch (IOException e) {
 						// We found an corpse!
 						selectorChannel.remove(socketChannel);
 						socketChannels.add(socketChannel);
@@ -557,38 +544,5 @@ class Dispenser implements WorkloadDispenser {
 				return "LocalSelectorChannel{" + selector + ", " + socketChannels.toString() + "}";
 			}
 		}
-	}
-
-	private final class ConcurrentIterator<T> implements Iterator<T> {
-
-		private final Queue<T> channels;
-
-		private ConcurrentIterator(Collection<T> channels) {
-			this.channels = new LinkedList<>(channels);
-		}
-
-		/**
-		 * Returns {@code true} if the iteration has more elements.
-		 * (In other words, returns {@code true} if {@link #next} would
-		 * return an element rather than throwing an exception.)
-		 *
-		 * @return {@code true} if the iteration has more elements
-		 */
-		@Override
-		public boolean hasNext() {
-			return channels.peek() != null;
-		}
-
-		/**
-		 * Returns the next element in the iteration.
-		 *
-		 * @return the next element in the iteration
-		 * @throws NoSuchElementException if the iteration has no more elements
-		 */
-		@Override
-		public T next() {
-			return channels.poll();
-		}
-
 	}
 }

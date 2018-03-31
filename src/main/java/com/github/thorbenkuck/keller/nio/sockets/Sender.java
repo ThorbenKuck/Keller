@@ -2,6 +2,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 import java.util.function.Function;
 
@@ -15,7 +16,7 @@ public class Sender {
 
 	public boolean send(final Object object, final SocketChannel channel) throws IOException {
 		if(!channel.isOpen()) {
-			return false;
+			throw new ClosedChannelException();
 		}
 		String toSend = serialize(object);
 		byte[] message = toSend.getBytes();

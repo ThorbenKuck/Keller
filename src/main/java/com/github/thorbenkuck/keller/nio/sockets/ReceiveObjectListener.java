@@ -55,7 +55,11 @@ public class ReceiveObjectListener implements Runnable {
 			while (running.get()) {
 				try {
 					selector.select(400);
-					handle(selector.selectedKeys());
+					if(selector.isOpen()) {
+						handle(selector.selectedKeys());
+					} else {
+						stop();
+					}
 				} catch (IOException e) {
 					onException.accept(e);
 					stop();

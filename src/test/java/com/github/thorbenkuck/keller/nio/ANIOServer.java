@@ -96,7 +96,6 @@ public class ANIOServer {
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
 				.bufferSize(1024)
-				.workloadPerSelector(40)
 				.build();
 
 		workloadDispenser = hub.workloadDispenser();
@@ -112,8 +111,7 @@ public class ANIOServer {
 
 			hub.addReceivedListener(message -> {
 				try {
-					Object toSendBack = message.getContent();
-					hub.send(toSendBack, message.getChannel());
+					hub.send(new TestObject("ACK"), message.getChannel());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
