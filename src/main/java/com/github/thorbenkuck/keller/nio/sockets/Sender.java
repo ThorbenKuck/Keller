@@ -16,7 +16,7 @@ public class Sender {
 
 	public boolean send(final Object object, final SocketChannel channel) throws IOException {
 		if(!channel.isOpen()) {
-			throw new ClosedChannelException();
+			return false;
 		}
 		String toSend = serialize(object);
 		byte[] message = toSend.getBytes();

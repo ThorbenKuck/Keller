@@ -6,27 +6,29 @@ import java.util.List;
 
 public interface WorkloadDispenser extends Iterable<SelectorChannel> {
 
+	int countSelectorChannels();
+
+	int countConnectNodes();
+
 	boolean isEmpty();
 
-	void assignLowestSelectorChannel();
+	List<SocketChannel> collectCorpses();
+
+	List<SocketChannel> deepCollectCorpses();
+
+	List<SelectorChannel> clearEmpty();
 
 	void clearAll();
 
 	void cleanUpSelectorChannels();
+
+	void assignLowestSelectorChannel();
+
+	void shutdown();
 
 	void appeal(SocketChannel socketChannel) throws IOException;
 
 	void remove(SocketChannel socketChannel);
 
 	void setMaxWorkload(int to);
-
-	int countSelectorChannels();
-
-	int countConnectNodes();
-
-	List<SocketChannel> collectCorpses();
-
-	List<SocketChannel> deepCollectCorpses();
-
-	void shutdown();
 }

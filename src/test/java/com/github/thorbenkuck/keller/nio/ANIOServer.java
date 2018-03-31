@@ -31,6 +31,12 @@ public class ANIOServer {
 	}
 
 	private static void printExceptions() {
+		System.out.println("\n\n\n");
+		if(encountered.isEmpty()) {
+			System.out.println("No Exceptions encountered");
+		} else {
+			System.out.println("-----------Encountered Exceptions-----------");
+		}
 		synchronized (encountered) {
 			for(Throwable exception : encountered) {
 				exception.printStackTrace(System.out);
@@ -44,7 +50,7 @@ public class ANIOServer {
 			System.out.println("... received null message ...");
 			return;
 		}
-		System.out.println("Received: " + message.getContent());
+		System.out.println("################################### Received: " + message.getContent());
 		synchronized (receivedCounter) {
 			int current = receivedCounter.getOrDefault(message.getChannel(), 0);
 			receivedCounter.put(message.getChannel(), ++current);
@@ -59,10 +65,15 @@ public class ANIOServer {
 		try {
 			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + "in " + workloadDispenser.countSelectorChannels() + " SelectorChannels" + ")");
 		} catch (IOException e) {
-			e.printStackTrace();
+			e.printStackTrace(System.out);
+			addException(e);
 		}
 		synchronized (receivedCounter) {
-			count = receivedCounter.remove(channel);
+			if(receivedCounter.get(channel) == null) {
+				count = 0;
+			} else {
+				count = receivedCounter.remove(channel);
+			}
 		}
 		if(count < 4) {
 			System.err.println("Missing some Objects! Expected: " + 4 + " received: " +count);
@@ -79,7 +90,7 @@ public class ANIOServer {
 		} else {
 			out = System.err;
 		}
-		out.println("Failed " + failed.get() + " times!");
+		out.println("\nFailed " + failed.get() + " times!\n");
 
 		printExceptions();
 	}
@@ -96,7 +107,7 @@ public class ANIOServer {
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
 				.bufferSize(1024)
-				.workloadPerSelector(100)
+				.workloadPerSelector(50)
 				.build();
 
 		workloadDispenser = hub.workloadDispenser();
@@ -106,7 +117,7 @@ public class ANIOServer {
 				try {
 					System.out.println("Connected: " + socketChannel.getLocalAddress());
 				} catch (IOException e) {
-					e.printStackTrace();
+					addException(e);
 				}
 			});
 
@@ -114,7 +125,7 @@ public class ANIOServer {
 				try {
 					hub.send(new TestObject("ACK"), message.getChannel());
 				} catch (IOException e) {
-					e.printStackTrace();
+					addException(e);
 				}
 			});
 
@@ -131,10 +142,9 @@ public class ANIOServer {
 //			hub.close();
 //			System.out.println("Closed");
 		} catch (IOException e) {
-			e.printStackTrace();
+			addException(e);
 		}
 		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 10, 10, TimeUnit.SECONDS);
-		scheduledExecutorService.scheduleAtFixedRate(() -> deepCollect(hub.workloadDispenser()), 30, 30, TimeUnit.SECONDS);
 	}
 
 	private static void collect(WorkloadDispenser workloadDispenser) {
