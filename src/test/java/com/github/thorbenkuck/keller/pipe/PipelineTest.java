@@ -60,6 +60,25 @@ public class PipelineTest {
 	}
 
 	@Test
+	public void apply() {
+		// Arrange
+		Pipeline<TestHandle> pipeline = Pipeline.unifiedCreation();
+		pipeline.addLast(TestHandle::increment);
+		pipeline.addLast(TestHandle::increment);
+		pipeline.addLast((Consumer<TestHandle>) testHandle -> testHandle.count = testHandle.count * 2);
+		pipeline.addLast(TestHandle::increment);
+		pipeline.addLast((Consumer<TestHandle>) testHandle -> testHandle.count = testHandle.count / 2);
+
+		// Act
+		TestHandle input = new TestHandle();
+		TestHandle testHandle = pipeline.apply(input);
+
+		// Assert
+		assertEquals(3, testHandle.count);
+		assertEquals(input, testHandle);
+	}
+
+	@Test
 	public void addLast1() throws Exception {
 		// Arrange
 

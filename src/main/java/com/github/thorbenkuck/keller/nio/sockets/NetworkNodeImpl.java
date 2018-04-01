@@ -14,7 +14,7 @@ import java.util.function.Function;
 
 class NetworkNodeImpl implements NetworkNode {
 
-	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 	private final Sender sender = new Sender();
 	private int bufferSize = 256;
 	private SocketChannel channel;

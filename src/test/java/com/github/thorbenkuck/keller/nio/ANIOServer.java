@@ -65,7 +65,6 @@ public class ANIOServer {
 		try {
 			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + "in " + workloadDispenser.countSelectorChannels() + " SelectorChannels" + ")");
 		} catch (IOException e) {
-			e.printStackTrace(System.out);
 			addException(e);
 		}
 		synchronized (receivedCounter) {
@@ -96,6 +95,8 @@ public class ANIOServer {
 	}
 
 	public static void main(String[] args) {
+		System.out.println("Server initialized with " + Runtime.getRuntime().availableProcessors() + " available cores.");
+		System.out.println("Server initialized with " + Runtime.getRuntime().maxMemory() + " available memory.");
 		Runtime.getRuntime().addShutdownHook(new Thread(ANIOServer::printFails));
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> addException(e));
 		ScheduledExecutorService scheduledExecutorService = Executors.newScheduledThreadPool(2);
@@ -107,13 +108,15 @@ public class ANIOServer {
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
 				.bufferSize(1024)
-				.workloadPerSelector(50)
 				.build();
 
 		workloadDispenser = hub.workloadDispenser();
 
 		try {
 			hub.addConnectedListener(socketChannel -> {
+				if(!socketChannel.isOpen()) {
+					return;
+				}
 				try {
 					System.out.println("Connected: " + socketChannel.getLocalAddress());
 				} catch (IOException e) {
@@ -143,6 +146,8 @@ public class ANIOServer {
 //			System.out.println("Closed");
 		} catch (IOException e) {
 			addException(e);
+			System.err.println("Server terminated!");
+			System.exit(1);
 		}
 		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 10, 10, TimeUnit.SECONDS);
 	}

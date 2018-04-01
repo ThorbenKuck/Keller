@@ -18,6 +18,8 @@ public interface WorkloadDispenser extends Iterable<SelectorChannel> {
 
 	List<SelectorChannel> clearEmpty();
 
+	void drainAndReassign();
+
 	void clearAll();
 
 	void cleanUpSelectorChannels();

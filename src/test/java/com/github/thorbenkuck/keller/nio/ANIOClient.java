@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller.nio;
 
+import com.github.thorbenkuck.keller.nio.sockets.Message;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkNode;
 import com.github.thorbenkuck.keller.nio.sockets.NetworkNodeFactory;
 import javafx.application.Platform;
@@ -21,12 +22,22 @@ public class ANIOClient {
 		decreaseCount();
 	}
 
+	private void handle(Message message) {
+		System.out.println("########################################" + message.getContent());
+		if(message.getContent().getClass().equals(TestObject.class)) {
+			TestObject content = (TestObject) message.getContent();
+			if(content.getString().equals("ACK")) {
+				ack();
+			}
+		}
+	}
+
 	public ANIOClient(int count) {
 		this.myCount = count;
 		NetworkNode node = NetworkNodeFactory.create()
 				.serializer(new JavaSerializer())
 				.deserializer(new JavaDeserializer())
-				.onObjectReceive(System.out::println)
+				.onObjectReceive(this::handle)
 				.onDisconnect(channel -> disconnect())
 				.onException(ANIOClient::addException)
 				.build();
@@ -53,6 +64,7 @@ public class ANIOClient {
 
 			try {
 				node.send(new TestObject(companyName));
+				send();
 			} catch (IOException e) {
 				disconnect();
 			}
@@ -76,6 +88,15 @@ public class ANIOClient {
 
 	private static int count = 0;
 	private static final List<Throwable> encountered = new ArrayList<>();
+	private static int balance = 0;
+
+	public static void send() {
+		++balance;
+	}
+
+	public static void ack() {
+		--balance;
+	}
 
 	private static void addException(Throwable e) {
 		synchronized (encountered) {
@@ -90,6 +111,8 @@ public class ANIOClient {
 				System.out.println("\n\n");
 			}
 		}
+
+		System.out.println("Missing " + balance + " ACKs");
 	}
 
 	public static void decreaseCount() {

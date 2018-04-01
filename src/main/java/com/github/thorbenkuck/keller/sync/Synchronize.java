@@ -2,13 +2,20 @@ package com.github.thorbenkuck.keller.sync;
 
 public interface Synchronize extends Awaiting {
 
-	Synchronize EMPTY_SYNCHRONIZE = new EmptySynchronize();
 
 	static Synchronize empty() {
-		return EMPTY_SYNCHRONIZE;
+		return SynchronizeCache.getEmpty();
 	}
 
 	static Synchronize createDefault() { return new DefaultSynchronize(); }
+
+	static boolean isEmpty(Synchronize synchronize) {
+		return synchronize == empty();
+	}
+
+	static boolean isEmpty(Awaiting awaiting) {
+		return awaiting == empty();
+	}
 
 	void error();
 

@@ -20,7 +20,7 @@ class NetworkHubImpl implements NetworkHub {
 	private Consumer<Exception> onException = e -> e.printStackTrace(System.out);
 	private NewConnectionListener connectionListener;
 	private Selector connectionSelector;
-	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 	private int bufferSize = 256;
 	private ServerSocketChannel channel;
 
@@ -71,7 +71,7 @@ class NetworkHubImpl implements NetworkHub {
 		channel.bind(inetSocketAddress);
 		connectionSelector = Selector.open();
 		channel.register(connectionSelector, SelectionKey.OP_ACCEPT, null);
-		connectedListener.addFirst(connected -> {
+		connectedListener.addLast(connected -> {
 			try {
 				workloadDispenser.appeal(connected);
 			} catch (IOException e) {

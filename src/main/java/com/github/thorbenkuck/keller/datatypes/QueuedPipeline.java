@@ -14,7 +14,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		super(new LinkedList<>());
 	}
 
-	private void $addLast(PipelineElement<T> element) {
+	private void addLast0(PipelineElement<T> element) {
 		try {
 			assertIsOpen();
 			lock();
@@ -24,7 +24,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		}
 	}
 
-	private void $addFirst(PipelineElement<T> element) {
+	private void addFirst0(PipelineElement<T> element) {
 		Queue<PipelineElement<T>> newCore = new LinkedList<>();
 		newCore.add(element);
 		Queue<PipelineElement<T>> core = getCore();
@@ -39,7 +39,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		}
 	}
 
-	private void $remove(PipelineElement<T> element) {
+	private void remove0(PipelineElement<T> element) {
 		try {
 			assertIsOpen();
 			lock();
@@ -53,7 +53,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	public PipelineCondition<T> addLast(Consumer<T> consumer) {
 		Keller.parameterNotNull(consumer);
 		PipelineElement<T> element = createConsumerPipelineElement(consumer);
-		$addLast(element);
+		addLast0(element);
 		return createPipelineCondition(element);
 	}
 
@@ -61,7 +61,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	public PipelineCondition<T> addLast(final Function<T, T> pipelineService) {
 		Keller.parameterNotNull(pipelineService);
 		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
-		$addLast(element);
+		addLast0(element);
 		return createPipelineCondition(element);
 	}
 
@@ -69,7 +69,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	public PipelineCondition<T> addFirst(Consumer<T> consumer) {
 		Keller.parameterNotNull(consumer);
 		PipelineElement<T> element = createConsumerPipelineElement(consumer);
-		$addFirst(element);
+		addFirst0(element);
 		return createPipelineCondition(element);
 	}
 
@@ -77,17 +77,17 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	public PipelineCondition<T> addFirst(final Function<T, T> pipelineService) {
 		Keller.parameterNotNull(pipelineService);
 		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
-		$addFirst(element);
+		addFirst0(element);
 		return createPipelineCondition(element);
 	}
 
 	@Override
 	public void remove(Consumer<T> consumer) {
-		$remove(createConsumerPipelineElement(consumer));
+		remove0(createConsumerPipelineElement(consumer));
 	}
 
 	@Override
 	public void remove(Function<T, T> function) {
-		$remove(createFunctionPipelineElement(function));
+		remove0(createFunctionPipelineElement(function));
 	}
 }

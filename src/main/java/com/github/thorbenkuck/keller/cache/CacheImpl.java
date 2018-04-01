@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.cache;
 
+import com.github.thorbenkuck.keller.utility.Keller;
+
 import java.util.*;
 
 class CacheImpl implements Cache {
@@ -8,91 +10,70 @@ class CacheImpl implements Cache {
 	private final Map<Class<?>, List<CacheObserver<?>>> observers = new HashMap<>();
 	private final List<GeneralCacheObserver> generalCacheObservers = new ArrayList<>();
 
-	@Override
-	public void update(Object object) {
-		if (isSet(object.getClass())) {
-			synchronized (internals) {
-				internals.put(object.getClass(), object);
-			}
-			notifyAboutChangedEntry(object);
-		}
-	}
-
-	@Override
-	public void addNew(Object object) {
-		if (! isSet(object.getClass())) {
-			synchronized (internals) {
-				internals.put(object.getClass(), object);
-			}
-			notifyAboutNewEntry(object);
-		}
-	}
-
-	@Override
-	public void addAndOverride(Object object) {
-		if (! isSet(object.getClass())) {
-			addNew(object);
-		} else {
-			update(object);
-		}
-	}
-
-	@Override
-	public void remove(Class clazz) {
-		if (isSet(clazz)) {
-			synchronized (internals) {
-				internals.remove(clazz);
-			}
-			notifyAboutRemovedEntry(clazz);
-		}
-	}
-
-	@Override
-	public boolean isSet(Class<?> clazz) {
-		return get(clazz).isPresent();
-	}
-
-	@Override
-	@SuppressWarnings ("unchecked")
-	public <T> Optional<T> get(Class<T> clazz) {
-		Object retrieved;
+	private void set0(Class<?> clazz, Object object) {
 		synchronized (internals) {
-			retrieved = internals.get(clazz);
-		}
-		if (retrieved != null && retrieved.getClass().equals(clazz)) {
-			return Optional.of((T) retrieved);
-		}
-		return Optional.empty();
-	}
-
-	@Override
-	public <T> void addCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
-		observers.computeIfAbsent(clazz, k -> new ArrayList<>());
-		observers.get(clazz).add(cacheObserver);
-	}
-
-	@Override
-	public <T> void removeCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
-		if(observers.get(clazz) != null) {
-			observers.get(clazz).remove(cacheObserver);
+			internals.put(clazz, object);
 		}
 	}
 
-	@Override
-	public void addGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
-		generalCacheObservers.add(generalCacheObserver);
+	private void remove0(Class<?> clazz) {
+		synchronized (internals) {
+			internals.remove(clazz);
+		}
 	}
 
-	@Override
-	public void removeGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
-		generalCacheObservers.remove(generalCacheObserver);
+	private Object get0(Class<?> clazz) {
+		Object o;
+		synchronized (internals) {
+			o = internals.get(clazz);
+		}
+		return o;
 	}
 
-	@Override
-	public String toString() {
-		return "Cache{" +
-				"internals=" + internals +
-				'}';
+	private <T> void addObserver0(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		final List<CacheObserver<?>> setObservers;
+		synchronized (observers) {
+			setObservers = observers.get(clazz);
+		}
+		if(setObservers.contains(cacheObserver)) {
+			return;
+		}
+		setObservers.add(cacheObserver);
+	}
+
+	private <T> void removeObserver0(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		final List<CacheObserver<?>> setObservers;
+		synchronized (observers) {
+			setObservers = observers.get(clazz);
+		}
+		setObservers.remove(cacheObserver);
+	}
+
+	private void tryAddEmptyObserverList(Class<?> clazz) {
+		synchronized (observers) {
+			observers.computeIfAbsent(clazz, k -> new ArrayList<>());
+		}
+	}
+
+	private boolean isSetObservers(Class<?> clazz) {
+		final List<CacheObserver<?>> setObservers;
+		synchronized (observers) {
+			setObservers = observers.get(clazz);
+		}
+
+		return setObservers != null;
+	}
+
+	private List<CacheObserver<?>> getObserversFor(Class clazz) {
+		synchronized (observers) {
+			return observers.get(clazz);
+		}
+	}
+
+	private List<GeneralCacheObserver> getGeneralCacheObservers() {
+		synchronized (generalCacheObservers) {
+			return generalCacheObservers;
+		}
 	}
 
 	private void notifyAboutRemovedEntry(Class clazz) {
@@ -125,11 +106,92 @@ class CacheImpl implements Cache {
 		}
 	}
 
-	private List<CacheObserver<?>> getObserversFor(Class clazz) {
-		return observers.get(clazz);
+	@Override
+	public void update(Object object) {
+		Keller.parameterNotNull(object);
+		Class<?> clazz = object.getClass();
+		if (isSet(clazz)) {
+			set0(clazz, object);
+			notifyAboutChangedEntry(object);
+		}
 	}
 
-	private List<GeneralCacheObserver> getGeneralCacheObservers() {
-		return generalCacheObservers;
+	@Override
+	public void addNew(Object object) {
+		Keller.parameterNotNull(object);
+		Class<?> clazz = object.getClass();
+		if (! isSet(clazz)) {
+			set0(clazz, object);
+			notifyAboutNewEntry(object);
+		}
+	}
+
+	@Override
+	public void addAndOverride(Object object) {
+		if (! isSet(object.getClass())) {
+			addNew(object);
+		} else {
+			update(object);
+		}
+	}
+
+	@Override
+	public void remove(Class clazz) {
+		if (isSet(clazz)) {
+			remove0(clazz);
+			notifyAboutRemovedEntry(clazz);
+		}
+	}
+
+	@Override
+	public boolean isSet(Class<?> clazz) {
+		return get(clazz).isPresent();
+	}
+
+	@Override
+	@SuppressWarnings ("unchecked")
+	public <T> Optional<T> get(Class<T> clazz) {
+		if(clazz == null) {
+			return Optional.empty();
+		}
+		Object retrieved = get0(clazz);
+		if (retrieved != null && clazz.equals(retrieved.getClass())) {
+			return Optional.of((T) retrieved);
+		}
+		return Optional.empty();
+	}
+
+	@Override
+	public <T> void addCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		tryAddEmptyObserverList(clazz);
+		addObserver0(clazz, cacheObserver);
+	}
+
+	@Override
+	public <T> void removeCacheObserver(Class<T> clazz, CacheObserver<T> cacheObserver) {
+		if(isSetObservers(clazz)) {
+			removeObserver0(clazz, cacheObserver);
+		}
+	}
+
+	@Override
+	public void addGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
+		synchronized (generalCacheObservers) {
+			generalCacheObservers.add(generalCacheObserver);
+		}
+	}
+
+	@Override
+	public void removeGeneralCacheObserver(GeneralCacheObserver generalCacheObserver) {
+		synchronized (generalCacheObservers) {
+			generalCacheObservers.remove(generalCacheObserver);
+		}
+	}
+
+	@Override
+	public String toString() {
+		return "Cache{" +
+				"internals=" + internals +
+				'}';
 	}
 }

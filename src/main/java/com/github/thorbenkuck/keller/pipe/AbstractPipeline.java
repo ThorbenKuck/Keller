@@ -1,6 +1,9 @@
 package com.github.thorbenkuck.keller.pipe;
 
+import com.github.thorbenkuck.keller.observers.ObservableValue;
+
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -17,21 +20,37 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 		this.core = c;
 	}
 
+	private void run(final PipelineElement<T>[] collection, final ObservableValue<T> value) {
+		for(PipelineElement<T> pipelineService : collection) {
+			// Done, to protect from potential problems
+			// The JVM might still optimize it. That's
+			// why temp is declared final.
+			final T temp = value.get();
+			try {
+				T newTemp = pipelineService.apply(temp);
+				value.set(newTemp);
+			} catch (Throwable t) {
+				pipelineService.encountered(t);
+			}
+		}
+	}
+
+	// What is up with your
+	// generic system java..
+	// Why?
+	@SuppressWarnings("unchecked")
 	@Override
-	public final T apply(T element) {
+	public final T apply(final T element) {
 		assertIsOpen();
-		final Value current = new Value(element);
+		final ObservableValue<T> value = ObservableValue.of(element);
+		final PipelineElement<T>[] elements;
 		synchronized (core) {
-			core.forEach(pipelineService -> {
-				// Done, to protect from potential problems
-				// The JVM might still optimize it. That's
-				// why temp is declared final.
-				final T temp = current.get();
-				current.set(pipelineService.apply(temp));
-			});
+			elements = new ArrayList<>(core).toArray(new PipelineElement[core.size()]);
 		}
 
-		return current.get();
+		run(elements, value);
+
+		return value.get();
 	}
 
 	@Override
@@ -85,12 +104,16 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 
 	@Override
 	public boolean contains(Function<T, T> pipelineService) {
-		return core.contains(new FunctionPipelineElement<>(pipelineService));
+		synchronized (core) {
+			return core.contains(new FunctionPipelineElement<>(pipelineService));
+		}
 	}
 
 	@Override
 	public boolean contains(Consumer<T> pipelineService) {
-		return core.contains(new ConsumerPipelineElement<>(pipelineService));
+		synchronized (core) {
+			return core.contains(new ConsumerPipelineElement<>(pipelineService));
+		}
 	}
 
 	protected PipelineCondition<T> createPipelineCondition(PipelineElement<T> pipelineElement) {
@@ -132,23 +155,6 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 	protected final void removePipelineElement(PipelineElement<T> element) {
 		synchronized (core) {
 			core.remove(element);
-		}
-	}
-
-	private final class Value {
-
-		private T t;
-
-		public Value(T t) {
-			set(t);
-		}
-
-		public void set(T t) {
-			this.t = t;
-		}
-
-		public T get() {
-			return t;
 		}
 	}
 }

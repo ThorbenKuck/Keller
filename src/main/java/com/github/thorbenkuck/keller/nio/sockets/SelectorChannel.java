@@ -22,6 +22,8 @@ public interface SelectorChannel extends Iterable<SocketChannel> {
 
 	void wakeup();
 
+	List<SocketChannel> drainEmpty() throws IOException;
+
 	void close() throws IOException;
 
 	List<SocketChannel> getSocketChannels();
