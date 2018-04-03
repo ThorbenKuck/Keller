@@ -4,13 +4,13 @@ import java.util.function.BiConsumer;
 
 public interface GenericObserver<T> {
 
-	static <T> GenericObserver<T> of(Class<T> clazz, BiConsumer<T, AbstractGenericObservable> consumer) {
+	static <T> GenericObserver<T> of(final Class<T> clazz, final BiConsumer<T, AbstractGenericObservable> consumer) {
 		return new WrappingObserver<>(clazz, consumer);
 	}
 
-	void update(T t, AbstractGenericObservable abstractGenericObservable);
+	void update(final T t, final AbstractGenericObservable abstractGenericObservable);
 
-	default boolean accepts(Object object) {
+	default boolean accepts(final Object object) {
 		return true;
 	}
 

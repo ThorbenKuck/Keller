@@ -2,6 +2,6 @@ package com.github.thorbenkuck.keller.observers;
 
 public interface ValueListener<T> {
 
-	void onChange(T t, ObservableValue<T> source);
+	void onChange(final T t, final ObservableValue<T> source);
 
 }

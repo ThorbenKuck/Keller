@@ -1,10 +1,10 @@
 package com.github.thorbenkuck.keller.repository;
 
-public class RepositoryConditionConnectionImpl<T> implements RepositoryConditionConnection<T> {
+final class RepositoryConditionConnectionImpl<T> implements RepositoryConditionConnection<T> {
 
-	private ActionStack<T> actionStack;
+	private final ActionStack<T> actionStack;
 
-	public RepositoryConditionConnectionImpl(ActionStack<T> actionStack) {
+	public RepositoryConditionConnectionImpl(final ActionStack<T> actionStack) {
 		this.actionStack = actionStack;
 	}
 

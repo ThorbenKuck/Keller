@@ -12,6 +12,7 @@ import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 
 public class ANIOClient {
 
@@ -133,7 +134,12 @@ public class ANIOClient {
 		ExecutorService executorService = Executors.newCachedThreadPool();
 		final ThreadLocalRandom random = ThreadLocalRandom.current();
 
-		while(true) {
+		long start = System.currentTimeMillis();
+		boolean running = true;
+		while(running) {
+			if(TimeUnit.MILLISECONDS.toSeconds(start - System.currentTimeMillis()) == 2) {
+				running = false;
+			}
 			increaseCount();
 			int finalCount = count;
 			executorService.submit(() -> new ANIOClient(finalCount));

@@ -5,6 +5,7 @@ import com.github.thorbenkuck.keller.sync.Awaiting;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 public interface ViewController {
 
@@ -32,4 +33,5 @@ public interface ViewController {
 
 	View getMainView();
 
+	void setThreadExtractor(Consumer<Runnable> extractor);
 }

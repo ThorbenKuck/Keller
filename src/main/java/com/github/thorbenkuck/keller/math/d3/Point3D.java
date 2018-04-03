@@ -1,6 +1,6 @@
 package com.github.thorbenkuck.keller.math.d3;
 
-public class Point3D {
+public final class Point3D {
 
 	private final double x;
 	private final double y;
@@ -12,15 +12,15 @@ public class Point3D {
 		this.z = z;
 	}
 
-	public double getX() {
+	public final double getX() {
 		return x;
 	}
 
-	public double getY() {
+	public final double getY() {
 		return y;
 	}
 
-	public double getZ() {
+	public final double getZ() {
 		return z;
 	}
 }

@@ -1,9 +1,6 @@
 package com.github.thorbenkuck.keller.nio;
 
-import com.github.thorbenkuck.keller.nio.sockets.Message;
-import com.github.thorbenkuck.keller.nio.sockets.NetworkHub;
-import com.github.thorbenkuck.keller.nio.sockets.NetworkHubFactory;
-import com.github.thorbenkuck.keller.nio.sockets.WorkloadDispenser;
+import com.github.thorbenkuck.keller.nio.sockets.*;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -50,7 +47,7 @@ public class ANIOServer {
 			System.out.println("... received null message ...");
 			return;
 		}
-		System.out.println("################################### Received: " + message.getContent());
+//		System.out.println("################################### Received: " + message.getContent());
 		synchronized (receivedCounter) {
 			int current = receivedCounter.getOrDefault(message.getChannel(), 0);
 			receivedCounter.put(message.getChannel(), ++current);
@@ -62,24 +59,25 @@ public class ANIOServer {
 		if(channel == null) {
 			return;
 		}
-		try {
-			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + "in " + workloadDispenser.countSelectorChannels() + " SelectorChannels" + ")");
-		} catch (IOException e) {
-			addException(e);
-		}
-		synchronized (receivedCounter) {
-			if(receivedCounter.get(channel) == null) {
-				count = 0;
-			} else {
-				count = receivedCounter.remove(channel);
-			}
-		}
-		if(count < 4) {
-			System.err.println("Missing some Objects! Expected: " + 4 + " received: " +count);
-			synchronized (failed) {
-				failed.incrementAndGet();
-			}
-		}
+
+//		try {
+//			System.out.println("Disconnected " + channel.getRemoteAddress() + "(left over: " + workloadDispenser.countConnectNodes() + "in " + workloadDispenser.countSelectorChannels() + " SelectorChannels" + ")");
+//		} catch (IOException e) {
+//			addException(e);
+//		}
+//		synchronized (receivedCounter) {
+//			if(receivedCounter.get(channel) == null) {
+//				count = 0;
+//			} else {
+//				count = receivedCounter.remove(channel);
+//			}
+//		}
+//		if(count < 4) {
+//			System.err.println("Missing some Objects! Expected: " + 4 + " received: " +count);
+//			synchronized (failed) {
+//				failed.incrementAndGet();
+//			}
+//		}
 	}
 
 	private static void printFails() {
@@ -107,21 +105,23 @@ public class ANIOServer {
 				.onObjectReceive(ANIOServer::received)
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
+				.workloadPerSelector(100)
 				.bufferSize(1024)
 				.build();
 
 		workloadDispenser = hub.workloadDispenser();
+		workloadDispenser.setChoosingStrategy(ChoosingStrategy.highestWorkloadFirst());
 
 		try {
 			hub.addConnectedListener(socketChannel -> {
 				if(!socketChannel.isOpen()) {
 					return;
 				}
-				try {
-					System.out.println("Connected: " + socketChannel.getLocalAddress());
-				} catch (IOException e) {
-					addException(e);
-				}
+//				try {
+//					System.out.println("Connected: " + socketChannel.getLocalAddress());
+//				} catch (IOException e) {
+//					addException(e);
+//				}
 			});
 
 			hub.addReceivedListener(message -> {
@@ -149,19 +149,27 @@ public class ANIOServer {
 			System.err.println("Server terminated!");
 			System.exit(1);
 		}
-		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 10, 10, TimeUnit.SECONDS);
+		scheduledExecutorService.scheduleAtFixedRate(() -> collect(hub.workloadDispenser()), 1, 1, TimeUnit.SECONDS);
 	}
 
 	private static void collect(WorkloadDispenser workloadDispenser) {
-		System.out.println("COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
+		final List<ReadOnlySelectorChannelInformation> information = workloadDispenser.dumpInformation();
+		if(information.isEmpty()) {
+			return;
+		}
+//		System.out.println("COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
 		workloadDispenser.collectCorpses();
-		System.out.println("COLLECTING_CORPSES finished");
-	}
+//		System.out.println("COLLECTING_CORPSES finished");
 
-	private static void deepCollect(WorkloadDispenser dispenser) {
-		System.out.println("DEEPLY_COLLECTING_CORPSES .. (" + workloadDispenser.countConnectNodes() + " IN " + workloadDispenser.countSelectorChannels() + ")");
-		workloadDispenser.collectCorpses();
-		System.out.println("DEEPLY_COLLECTING_CORPSES finished");
+		System.out.println("\nFound " + information.size() + " SelectorChannels");
+		int totalSockets = 0;
+		double totalWorkload = 0.0;
+		for(ReadOnlySelectorChannelInformation inf : information) {
+			totalSockets += inf.getStoredSocketChannels();
+			totalSockets += inf.workloadPercentage();
+			System.out.println(inf);
+		}
+		System.out.println(totalSockets + " SocketChannels found. Total workload: " + totalWorkload );
+		System.out.println();
 	}
-
 }

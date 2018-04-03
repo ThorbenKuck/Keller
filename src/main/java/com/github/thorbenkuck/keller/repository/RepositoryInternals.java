@@ -7,7 +7,7 @@ import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
-public class RepositoryInternals {
+class RepositoryInternals {
 
 	private final List<Object> objectList = new ArrayList<>();
 	private CountDownLatch countDownLatch = new CountDownLatch(0);
@@ -51,7 +51,7 @@ public class RepositoryInternals {
 		countDownLatch.await();
 	}
 
-	public boolean contains(Object o) {
+	public boolean contains(final Object o) {
 		try {
 			synchronize();
 		} catch (InterruptedException e) {
@@ -60,7 +60,7 @@ public class RepositoryInternals {
 		return objectList.contains(o);
 	}
 
-	public void add(Object o) {
+	public void add(final Object o) {
 		try {
 			synchronize();
 		} catch (InterruptedException e) {

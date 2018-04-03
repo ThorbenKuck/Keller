@@ -10,7 +10,7 @@ public class ConsumerPipelineElement<T> implements APIPipelineElement<T> {
 	private final Consumer<T> consumer;
 	private final List<Predicate<T>> predicates = new ArrayList<>();
 
-	ConsumerPipelineElement(Consumer<T> consumer) {
+	ConsumerPipelineElement(final Consumer<T> consumer) {
 		this.consumer = consumer;
 	}
 
@@ -24,17 +24,17 @@ public class ConsumerPipelineElement<T> implements APIPipelineElement<T> {
 	}
 
 	@Override
-	public void addCondition(Predicate<T> predicate) {
+	public void addCondition(final Predicate<T> predicate) {
 		predicates.add(predicate);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		return obj != null && obj.getClass().equals(ConsumerPipelineElement.class) && consumer.equals(((ConsumerPipelineElement) obj).getConsumer());
 	}
 
-	boolean test(T t) {
-		for (Predicate<T> predicate : predicates) {
+	boolean test(final T t) {
+		for (final Predicate<T> predicate : predicates) {
 			if (! predicate.test(t)) {
 				return false;
 			}

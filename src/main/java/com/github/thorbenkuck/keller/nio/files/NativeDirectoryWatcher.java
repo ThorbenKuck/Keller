@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -71,18 +72,25 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 	}
 
 	@Override
-	public void watch(Path directoryPath) throws DirectoryWatcherException {
+	public synchronized void watch(Path directoryPath) throws DirectoryWatcherException {
 		if(!Files.exists(directoryPath) || !Files.isDirectory(directoryPath)) {
 			throw new DirectoryWatcherException("Can only watch directorys! Directory expected!");
 		}
 
-		stopWatching();
+		final Semaphore start = new Semaphore(1);
 
-		PathWatcher pathWatcher = new PathWatcher(directoryPath, this::runNew, this::runUpdated, this::runDeleted, this::exception);
+		stopWatching();
+		PathWatcher pathWatcher = new PathWatcher(directoryPath, this::runNew, this::runUpdated, this::runDeleted, this::exception, start::release);
 
 		synchronized (watcher) {
 			watcher.set(pathWatcher);
 			executorService.submit(pathWatcher);
+		}
+
+		try {
+			start.acquire();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -99,6 +107,12 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 		runnable.softStop();
 	}
 
+	@Override
+	public void close() {
+		stopWatching();
+		executorService.shutdown();
+	}
+
 	private class PathWatcher implements Runnable {
 
 		private Thread runningIn;
@@ -108,13 +122,20 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 		private final Consumer<Path> updatedFile;
 		private final Consumer<Path> deletedFile;
 		private final Consumer<Exception> exceptionConsumer;
+		private final Runnable startedRunnable;
 
-		private PathWatcher(Path folder, Consumer<Path> newFile, Consumer<Path> updatedFile, Consumer<Path> deletedFile, Consumer<Exception> exceptionConsumer) {
+		private PathWatcher(Path folder, Consumer<Path> newFile, Consumer<Path> updatedFile, Consumer<Path> deletedFile,
+		                    Consumer<Exception> exceptionConsumer, Runnable startedRunnable) {
 			this.folder = folder;
 			this.newFile = newFile;
 			this.updatedFile = updatedFile;
 			this.deletedFile = deletedFile;
 			this.exceptionConsumer = exceptionConsumer;
+			this.startedRunnable = startedRunnable;
+		}
+
+		private void handle(Exception e) {
+			exceptionConsumer.accept(e);
 		}
 
 		/**
@@ -130,18 +151,22 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 		 */
 		@Override
 		public void run() {
-			WatchService watchService;
-			try {
-				watchService = folder.getFileSystem().newWatchService();
+			try(WatchService watchService = FileSystems.getDefault().newWatchService()) {
+				running.set(true);
+				runningIn = Thread.currentThread();
+				startedRunnable.run();
+				folder.register(watchService,
+						StandardWatchEventKinds.ENTRY_CREATE,
+						StandardWatchEventKinds.ENTRY_MODIFY,
+						StandardWatchEventKinds.ENTRY_DELETE,
+						StandardWatchEventKinds.OVERFLOW);
+				while(running.get()) {
+					watch(watchService);
+				}
 			} catch (IOException e) {
-				e.printStackTrace();
-				return;
+				handle(e);
 			}
-			running .set(true);
-			runningIn = Thread.currentThread();
-			while(running.get()) {
-				watch(watchService);
-			}
+
 		}
 
 		private void watch(WatchService watchService) {
@@ -149,9 +174,13 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 			try {
 				watchKey = watchService.take();
 			} catch (InterruptedException e) {
-				exceptionConsumer.accept(e);
+				if(running.get()) {
+					handle(e);
+				}
 				return;
 			}
+
+			System.out.println("Received watchEvent");
 
 			for(WatchEvent watchEvent : watchKey.pollEvents()) {
 				handleEvent(watchEvent);
@@ -168,7 +197,7 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 				return;
 			}
 
-			Path path = ((WatchEvent<Path>) watchEvent).context();
+			Path path = folder.resolve(((WatchEvent<Path>) watchEvent).context());
 			if(StandardWatchEventKinds.ENTRY_CREATE == kind) {
 				newFile.accept(path);
 			} else if(StandardWatchEventKinds.ENTRY_MODIFY == kind) {

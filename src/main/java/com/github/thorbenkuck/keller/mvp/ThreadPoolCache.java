@@ -11,22 +11,26 @@ class ThreadPoolCache {
 	private static final Semaphore semaphore = new Semaphore(1);
 
 	static ExecutorService getExecutorService() {
-		tryCreate();
-		return executorService;
+		return lazyGet();
 	}
 
-	private static void tryCreate() {
+	private static ExecutorService lazyGet() {
+		ExecutorService returnValue;
 		try {
 			semaphore.acquire();
 
 			if(executorService == null || executorService.isShutdown()) {
 				executorService = Executors.newCachedThreadPool();
 			}
+			returnValue = executorService;
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			throw new IllegalStateException("Creation of ExecutorService failed!");
 		} finally {
 			semaphore.release();
 		}
+
+		return returnValue;
 	}
 
 }

@@ -14,7 +14,7 @@ public class ConcurrentIterator<T> implements Iterator<T> {
 	}
 
 	public ConcurrentIterator(final Collection<T> collection, boolean removeAllowed) {
-		this.pipe = new LinkedList<>(collection);
+		this.pipe = new ArrayDeque<>(collection);
 		this.root = collection;
 		this.removeAllowed = removeAllowed;
 	}

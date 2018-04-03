@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -36,6 +38,10 @@ public class ReceiveObjectListener implements Runnable {
 		this.onException = onException;
 	}
 
+	private void handle(Exception e) {
+		onException.accept(e);
+	}
+
 	/**
 	 * When an object implementing interface <code>Runnable</code> is used
 	 * to create a thread, starting the thread causes the object's
@@ -54,19 +60,19 @@ public class ReceiveObjectListener implements Runnable {
 		try {
 			while (running.get()) {
 				try {
-					selector.select(400);
+					selector.select();
 					if(selector.isOpen()) {
 						handle(selector.selectedKeys());
 					} else {
 						stop();
 					}
 				} catch (IOException e) {
-					onException.accept(e);
+					handle(e);
 					stop();
 				}
 			}
-		} catch (Throwable throwable) {
-			throwable.printStackTrace(System.out);
+		} catch (Exception e) {
+			handle(e);
 		}
 		// TODO change to callback? Or don't care? IDK...
 		System.out.println("Receive Listener disconnected");
@@ -77,16 +83,12 @@ public class ReceiveObjectListener implements Runnable {
 		final Queue<Message> received = new LinkedList<>();
 		while (iterator.hasNext()) {
 			SelectionKey key = iterator.next();
-			if (!key.isValid()) {
-				SocketChannel channel = (SocketChannel) key.channel();
-				handleDisconnected(channel);
-				break;
-			}
 
-			if (key.isReadable()) {
+			if (key.isValid() && key.isReadable()) {
 				SocketChannel sender = (SocketChannel) key.channel();
 				receivedBytesHandler.handle(sender, this::handleDisconnected, bufferSize, deserializer, received, onException);
 			}
+
 			iterator.remove();
 		}
 
@@ -98,7 +100,7 @@ public class ReceiveObjectListener implements Runnable {
 		try {
 			channel.close();
 		} catch (IOException e) {
-			onException.accept(e);
+			handle(e);
 		}
 	}
 

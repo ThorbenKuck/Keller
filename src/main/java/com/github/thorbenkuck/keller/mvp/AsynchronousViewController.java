@@ -1,24 +1,24 @@
 package com.github.thorbenkuck.keller.mvp;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Factory;
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.sync.Awaiting;
-import com.github.thorbenkuck.keller.sync.DefaultSynchronize;
+import com.github.thorbenkuck.keller.sync.DefaultCountDownLatchSynchronize;
 import com.github.thorbenkuck.keller.sync.Synchronize;
 
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 public class AsynchronousViewController implements ViewController {
 
 	private final Map<Class<? extends View>, Factory<View>> factoryMap = new HashMap<>();
-	private final AtomicReference<BiConsumer<Presenter, View>> beforeShowConsumer = new AtomicReference<>((presenter, view) -> {});
-	private final AtomicReference<BiConsumer<Presenter, View>> onClose = new AtomicReference<>(((presenter, view) -> {}));
-	private final AtomicReference<Consumer<Runnable>> threadSimulator = new AtomicReference<>();
-	private final AtomicReference<View> mainView = new AtomicReference<>();
+	private final Value<BiConsumer<Presenter, View>> beforeShowConsumer = Value.of((presenter, view) -> {});
+	private final Value<BiConsumer<Presenter, View>> onClose = Value.of(((presenter, view) -> {}));
+	private final Value<Consumer<Runnable>> threadSimulator = Value.empty();
+	private final Value<View> mainView = Value.empty();
 	private final List<View> separateViews = new ArrayList<>();
 
 	public AsynchronousViewController() {
@@ -64,9 +64,9 @@ public class AsynchronousViewController implements ViewController {
 	@Override
 	public Awaiting openMainStage(final Class<? extends View> viewClass) {
 		Objects.requireNonNull(viewClass);
-		Synchronize synchronize = new DefaultSynchronize();
+		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
 
-		final Factory<View> viewFactory = _safeGetViewFactory(viewClass);
+		final Factory<View> viewFactory = safeGetViewFactory(viewClass);
 
 		runOnOtherThread(() -> runSynchronized(() -> {
 			closeStageOnCurrentThread(mainView.get());
@@ -84,9 +84,9 @@ public class AsynchronousViewController implements ViewController {
 	@Override
 	public Awaiting openSeparateStage(final Class<? extends View> viewClass) {
 		Objects.requireNonNull(viewClass);
-		Synchronize synchronize = new DefaultSynchronize();
+		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
 
-		final Factory<View> viewFactory = _safeGetViewFactory(viewClass);
+		final Factory<View> viewFactory = safeGetViewFactory(viewClass);
 
 		runOnOtherThread(() -> {
 
@@ -118,7 +118,7 @@ public class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeAll() {
-		Synchronize synchronize = new DefaultSynchronize();
+		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
 		runOnOtherThread(() -> {
 			try {
 				closeAllSeparateStages().synchronize();
@@ -132,7 +132,7 @@ public class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeAllSeparateStages() {
-		Synchronize synchronize = new DefaultSynchronize();
+		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
 		runOnOtherThread(() -> {
 			for (View stage : separateViews) {
 				getActiveSeparateStage(stage.getClass()).ifPresent(this::closeStageSynchronizedOnCurrentThread);
@@ -143,7 +143,7 @@ public class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeSeparateActiveStage(final Class<? extends View> viewClass) {
-		Synchronize synchronize = new DefaultSynchronize();
+		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
 		runOnOtherThread(() -> getActiveSeparateStage(viewClass).ifPresent(this::closeStageSynchronizedOnCurrentThread), synchronize);
 		return synchronize;
 	}
@@ -158,7 +158,14 @@ public class AsynchronousViewController implements ViewController {
 		return mainView.get();
 	}
 
-	private Factory<View> _safeGetViewFactory(final Class<? extends View> clazz) {
+	@Override
+	public void setThreadExtractor(Consumer<Runnable> extractor) {
+		synchronized (threadSimulator) {
+			threadSimulator.set(extractor);
+		}
+	}
+
+	private Factory<View> safeGetViewFactory(final Class<? extends View> clazz) {
 		final Factory<View> viewFactory = getFactory(clazz);
 		if(viewFactory == null) {
 			throw new IllegalStateException("Factory for " + clazz + " is null! This is not acceptable!");
@@ -177,7 +184,11 @@ public class AsynchronousViewController implements ViewController {
 	}
 
 	private void runOnOtherThread(Runnable runnable, Synchronize synchronize) {
-		threadSimulator.get().accept(() -> {
+		Consumer<Runnable> extractor;
+		synchronized (threadSimulator) {
+			extractor = threadSimulator.get();
+		}
+		extractor.accept(() -> {
 			runnable.run();
 			synchronize.goOn();
 		});

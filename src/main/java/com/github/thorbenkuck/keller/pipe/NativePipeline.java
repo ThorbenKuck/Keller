@@ -1,20 +1,20 @@
-package com.github.thorbenkuck.keller.datatypes;
+package com.github.thorbenkuck.keller.pipe;
 
-import com.github.thorbenkuck.keller.pipe.*;
 import com.github.thorbenkuck.keller.utility.Keller;
 
+import java.util.ArrayDeque;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement<T>>> {
+public final class NativePipeline<T> extends AbstractPipeline<T, Queue<PipelineElement<T>>> {
 
-	public QueuedPipeline() {
-		super(new LinkedList<>());
+	public NativePipeline() {
+		super(new ArrayDeque<>());
 	}
 
-	private void addLast0(PipelineElement<T> element) {
+	private void addLast0(final PipelineElement<T> element) {
 		try {
 			assertIsOpen();
 			lock();
@@ -24,10 +24,10 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		}
 	}
 
-	private void addFirst0(PipelineElement<T> element) {
-		Queue<PipelineElement<T>> newCore = new LinkedList<>();
+	private void addFirst0(final PipelineElement<T> element) {
+		final Queue<PipelineElement<T>> newCore = new LinkedList<>();
 		newCore.add(element);
-		Queue<PipelineElement<T>> core = getCore();
+		final Queue<PipelineElement<T>> core = getCore();
 		try {
 			assertIsOpen();
 			lock();
@@ -39,7 +39,7 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 		}
 	}
 
-	private void remove0(PipelineElement<T> element) {
+	private void remove0(final PipelineElement<T> element) {
 		try {
 			assertIsOpen();
 			lock();
@@ -50,9 +50,9 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	}
 
 	@Override
-	public PipelineCondition<T> addLast(Consumer<T> consumer) {
+	public PipelineCondition<T> addLast(final Consumer<T> consumer) {
 		Keller.parameterNotNull(consumer);
-		PipelineElement<T> element = createConsumerPipelineElement(consumer);
+		final PipelineElement<T> element = createConsumerPipelineElement(consumer);
 		addLast0(element);
 		return createPipelineCondition(element);
 	}
@@ -60,15 +60,15 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	@Override
 	public PipelineCondition<T> addLast(final Function<T, T> pipelineService) {
 		Keller.parameterNotNull(pipelineService);
-		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
+		final PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
 		addLast0(element);
 		return createPipelineCondition(element);
 	}
 
 	@Override
-	public PipelineCondition<T> addFirst(Consumer<T> consumer) {
+	public PipelineCondition<T> addFirst(final Consumer<T> consumer) {
 		Keller.parameterNotNull(consumer);
-		PipelineElement<T> element = createConsumerPipelineElement(consumer);
+		final PipelineElement<T> element = createConsumerPipelineElement(consumer);
 		addFirst0(element);
 		return createPipelineCondition(element);
 	}
@@ -76,18 +76,18 @@ public class QueuedPipeline<T> extends AbstractPipeline<T, Queue<PipelineElement
 	@Override
 	public PipelineCondition<T> addFirst(final Function<T, T> pipelineService) {
 		Keller.parameterNotNull(pipelineService);
-		PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
+		final PipelineElement<T> element = createFunctionPipelineElement(pipelineService);
 		addFirst0(element);
 		return createPipelineCondition(element);
 	}
 
 	@Override
-	public void remove(Consumer<T> consumer) {
+	public void remove(final Consumer<T> consumer) {
 		remove0(createConsumerPipelineElement(consumer));
 	}
 
 	@Override
-	public void remove(Function<T, T> function) {
+	public void remove(final Function<T, T> function) {
 		remove0(createFunctionPipelineElement(function));
 	}
 }

@@ -7,19 +7,19 @@ import java.util.function.Function;
 
 public interface NetworkFactory<T, U> {
 
-	U onObjectReceive(Consumer<Message> consumer);
+	U onObjectReceive(final Consumer<Message> consumer);
 
-	U onDisconnect(Consumer<SocketChannel> consumer);
+	U onDisconnect(final Consumer<SocketChannel> consumer);
 
-	U serializer(Function<Object, String> function);
+	U serializer(final Function<Object, String> function);
 
-	U deserializer(Function<String, Object> function);
+	U deserializer(final Function<String, Object> function);
 
-	U executorService(ExecutorService executorService);
+	U executorService(final ExecutorService executorService);
 
-	U onException(Consumer<Exception> ex);
+	U onException(final Consumer<Exception> ex);
 
-	U bufferSize(int bufferSize);
+	U bufferSize(final int bufferSize);
 
 	T build();
 

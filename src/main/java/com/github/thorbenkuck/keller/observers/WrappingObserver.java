@@ -2,7 +2,7 @@ package com.github.thorbenkuck.keller.observers;
 
 import java.util.function.BiConsumer;
 
-class WrappingObserver<T> extends AbstractObserver<T> {
+final class WrappingObserver<T> extends AbstractObserver<T> {
 
 	private final BiConsumer<T, AbstractGenericObservable> consumer;
 

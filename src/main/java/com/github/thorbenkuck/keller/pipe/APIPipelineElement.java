@@ -4,6 +4,6 @@ import java.util.function.Predicate;
 
 interface APIPipelineElement<T> extends PipelineElement<T> {
 
-	void addCondition(Predicate<T> predicate);
+	void addCondition(final Predicate<T> predicate);
 
 }

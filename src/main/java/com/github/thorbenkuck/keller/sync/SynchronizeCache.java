@@ -1,12 +1,16 @@
 package com.github.thorbenkuck.keller.sync;
 
-class SynchronizeCache {
+final class SynchronizeCache {
 
 	static Synchronize empty;
 
 	static Synchronize getEmpty() {
 		checkNull();
 		return empty;
+	}
+
+	static boolean isEmpty(Awaiting awaiting) {
+		return empty != null && awaiting == empty;
 	}
 
 	private static synchronized void checkNull() {

@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NetworkNodeImpl implements NetworkNode {
+class NativeNetworkNode implements NetworkNode {
 
 	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 	private final Sender sender = new Sender();
@@ -24,22 +24,6 @@ class NetworkNodeImpl implements NetworkNode {
 	private Selector selector;
 	private ReceiveObjectListener worker;
 	private Consumer<Exception> exceptionConsumer = e -> e.printStackTrace(System.out);
-
-	@Override
-	public void open(final String string, int port) throws IOException {
-		open(new InetSocketAddress(string, port));
-	}
-
-	@Override
-	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
-		channel = SocketChannel.open(inetSocketAddress);
-		channel.configureBlocking(false);
-		selector = Selector.open();
-		channel.register(selector, SelectionKey.OP_READ, null);
-		disconnectedListener.addFirst(this::handleDisconnect);
-		worker = new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService, this::consume);
-		executorService.submit(worker);
-	}
 
 	private void handleDisconnect(SocketChannel channel) {
 		try {
@@ -59,7 +43,7 @@ class NetworkNodeImpl implements NetworkNode {
 		return executorService;
 	}
 
-	private void consume(Exception e) {
+	private void consume(final Exception e) {
 		exceptionConsumer.accept(e);
 	}
 
@@ -71,12 +55,32 @@ class NetworkNodeImpl implements NetworkNode {
 		this.bufferSize = bufferSize;
 	}
 
-	void setExceptionConsumer(Consumer<Exception> consumer) {
+	void setExceptionConsumer(final Consumer<Exception> consumer) {
 		this.exceptionConsumer = consumer;
 	}
 
+	public void op(final int port) throws IOException {
+		open("localhost", port);
+	}
+
 	@Override
-	public void send(Object object) throws IOException {
+	public void open(final String string, final int port) throws IOException {
+		open(new InetSocketAddress(string, port));
+	}
+
+	@Override
+	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
+		channel = SocketChannel.open(inetSocketAddress);
+		channel.configureBlocking(false);
+		selector = Selector.open();
+		channel.register(selector, SelectionKey.OP_READ, null);
+		disconnectedListener.addFirst(this::handleDisconnect);
+		worker = new ReceiveObjectListener(selector, disconnectedListener, receivedListener, deSerializer, this::getBufferSize, this::getExecutorService, this::consume);
+		executorService.submit(worker);
+	}
+
+	@Override
+	public void send(final Object object) throws IOException {
 		if(!isOpen()) {
 			return;
 		}
@@ -89,12 +93,17 @@ class NetworkNodeImpl implements NetworkNode {
 	}
 
 	@Override
-	public void addReceivedListener(Consumer<Message> consumer) {
+	public void addReceivedListener(final Consumer<Message> consumer) {
 		this.receivedListener.add(consumer);
 	}
 
 	@Override
-	public void setSerializer(Function<Object, String> function) {
+	public void addDisconnectedListener(final Consumer<SocketChannel> consumer) {
+		this.disconnectedListener.add(consumer);
+	}
+
+	@Override
+	public void setSerializer(final Function<Object, String> function) {
 		sender.setSerializer(function);
 	}
 
@@ -118,7 +127,7 @@ class NetworkNodeImpl implements NetworkNode {
 	}
 
 	@Override
-	public void setDeSerializer(Function<String, Object> deSerializer) {
+	public void setDeSerializer(final Function<String, Object> deSerializer) {
 		this.deSerializer.setDeserializer(deSerializer);
 	}
 

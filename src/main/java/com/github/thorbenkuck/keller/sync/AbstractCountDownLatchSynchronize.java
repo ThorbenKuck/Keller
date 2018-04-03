@@ -4,16 +4,16 @@ import com.github.thorbenkuck.keller.annotations.Asynchronous;
 
 import java.util.concurrent.CountDownLatch;
 
-public abstract class AbstractSynchronize implements Synchronize {
+public abstract class AbstractCountDownLatchSynchronize implements Synchronize {
 
 	protected final int numberOfActions;
 	protected CountDownLatch countDownLatch;
 
-	protected AbstractSynchronize() {
+	protected AbstractCountDownLatchSynchronize() {
 		this(1);
 	}
 
-	protected AbstractSynchronize(final int numberOfActions) {
+	protected AbstractCountDownLatchSynchronize(final int numberOfActions) {
 		if (numberOfActions < 1) {
 			throw new IllegalArgumentException("Number of actions cannot be smaller than 1!");
 		}

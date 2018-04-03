@@ -4,6 +4,6 @@ import java.util.function.Predicate;
 
 public interface PipelineCondition<T> {
 
-	PipelineChain<T> withRequirement(Predicate<T> predicate);
+	PipelineChain<T> withRequirement(final Predicate<T> predicate);
 
 }

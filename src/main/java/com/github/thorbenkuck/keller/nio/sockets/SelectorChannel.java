@@ -12,6 +12,8 @@ public interface SelectorChannel extends Iterable<SocketChannel> {
 
 	int getWorkload();
 
+	boolean workloadReached(int maxWorkload);
+
 	Selector selector();
 
 	boolean contains(SocketChannel socketChannel);
@@ -27,4 +29,8 @@ public interface SelectorChannel extends Iterable<SocketChannel> {
 	void close() throws IOException;
 
 	List<SocketChannel> getSocketChannels();
+
+	boolean isEmpty();
+
+	ReadOnlySelectorChannelInformation toInformation(int maxWorkload);
 }

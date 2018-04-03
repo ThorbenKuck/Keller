@@ -1,14 +1,14 @@
 package com.github.thorbenkuck.keller.sync;
 
-public class DefaultSynchronize extends AbstractSynchronize {
+public class DefaultCountDownLatchSynchronize extends AbstractCountDownLatchSynchronize {
 
 	private Runnable onError = () -> System.out.println(this + " encountered an error!");
 
-	public DefaultSynchronize() {
+	public DefaultCountDownLatchSynchronize() {
 		this(1);
 	}
 
-	public DefaultSynchronize(final int numberOfActions) {
+	public DefaultCountDownLatchSynchronize(final int numberOfActions) {
 		super(numberOfActions);
 	}
 

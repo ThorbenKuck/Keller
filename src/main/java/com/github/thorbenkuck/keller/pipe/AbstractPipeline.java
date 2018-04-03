@@ -117,7 +117,7 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 	}
 
 	protected PipelineCondition<T> createPipelineCondition(PipelineElement<T> pipelineElement) {
-		return new PipelineConditionImpl<>(pipelineElement);
+		return new NativePipelineCondition<>(pipelineElement);
 	}
 
 	protected PipelineElement<T> createFunctionPipelineElement(Function<T, T> function) {

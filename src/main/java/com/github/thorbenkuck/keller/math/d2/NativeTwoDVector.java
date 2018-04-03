@@ -2,29 +2,29 @@ package com.github.thorbenkuck.keller.math.d2;
 
 import java.util.function.Function;
 
-class TwoDVectorImpl implements TwoDVector {
+final class NativeTwoDVector implements TwoDVector {
 
 	private double x;
 	private double y;
 
-	TwoDVectorImpl(Point2D point2D) {
+	NativeTwoDVector(Point2D point2D) {
 		this.x = point2D.getX();
 		this.y = point2D.getY();
 	}
 
-	TwoDVectorImpl(double x, double y) {
+	NativeTwoDVector(double x, double y) {
 		this(new Point2D(x, y));
 	}
 
-	TwoDVectorImpl() {
+	NativeTwoDVector() {
 		this(0, 0);
 	}
 
-	TwoDVectorImpl(TwoDVectorImpl vector) {
+	NativeTwoDVector(NativeTwoDVector vector) {
 		this(vector.x, vector.y);
 	}
 
-	TwoDVectorImpl(TwoDVector vector) {
+	NativeTwoDVector(TwoDVector vector) {
 		this(vector.getX(), vector.getY());
 	}
 
@@ -36,29 +36,29 @@ class TwoDVectorImpl implements TwoDVector {
 
 	@Override
 	public void addBy(int scalar) {
-		addBy(new TwoDVectorImpl(scalar, scalar));
+		addBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void addBy(double scalar) {
-		addBy(new TwoDVectorImpl(scalar, scalar));
+		addBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void subtractBy(TwoDVector scalar) {
-		final TwoDVectorImpl temp = new TwoDVectorImpl(scalar);
+		final NativeTwoDVector temp = new NativeTwoDVector(scalar);
 		temp.negate();
 		addBy(temp);
 	}
 
 	@Override
 	public void subtractBy(int scalar) {
-		subtractBy(new TwoDVectorImpl(scalar, scalar));
+		subtractBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void subtractBy(double scalar) {
-		subtractBy(new TwoDVectorImpl(scalar, scalar));
+		subtractBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
@@ -69,22 +69,22 @@ class TwoDVectorImpl implements TwoDVector {
 
 	@Override
 	public void multiplyBy(int scalar) {
-		multiplyBy(new TwoDVectorImpl(scalar, scalar));
+		multiplyBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void multiplyBy(double scalar) {
-		multiplyBy(new TwoDVectorImpl(scalar, scalar));
+		multiplyBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void divideBy(int scalar) {
-		divideBy(new TwoDVectorImpl(scalar, scalar));
+		divideBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
 	public void divideBy(double scalar) {
-		divideBy(new TwoDVectorImpl(scalar, scalar));
+		divideBy(new NativeTwoDVector(scalar, scalar));
 	}
 
 	@Override
@@ -141,7 +141,7 @@ class TwoDVectorImpl implements TwoDVector {
 
 	@Override
 	public TwoDVector copy() {
-		return new TwoDVectorImpl(this);
+		return new NativeTwoDVector(this);
 	}
 
 	@Override

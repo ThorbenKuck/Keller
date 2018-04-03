@@ -4,8 +4,8 @@ import java.util.function.Predicate;
 
 public interface RepositoryCondition<T> {
 
-	RepositoryConditionConnection<T> objectFulfills(Predicate<T> predicate);
+	RepositoryConditionConnection<T> objectFulfills(final Predicate<T> predicate);
 
-	RepositoryConditionConnection<T> objectDoesNotMeet(Predicate<T> predicate);
+	RepositoryConditionConnection<T> objectDoesNotMeet(final Predicate<T> predicate);
 
 }

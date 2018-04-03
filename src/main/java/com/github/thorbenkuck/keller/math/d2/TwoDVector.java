@@ -7,13 +7,13 @@ import com.github.thorbenkuck.keller.math.Vector;
 public interface TwoDVector extends Vector, GenericVector<TwoDVector, TwoDVectorFunction>, PrettyPrint {
 
 	static TwoDVector add(TwoDVector a, TwoDVector b) {
-		final TwoDVector base = new TwoDVectorImpl(a);
+		final TwoDVector base = new NativeTwoDVector(a);
 		base.addBy(b);
 		return base;
 	}
 
 	static TwoDVector subtract(TwoDVector a, TwoDVector b) {
-		final TwoDVector base = new TwoDVectorImpl(a);
+		final TwoDVector base = new NativeTwoDVector(a);
 		base.subtractBy(b);
 		return base;
 	}
@@ -25,11 +25,11 @@ public interface TwoDVector extends Vector, GenericVector<TwoDVector, TwoDVector
 	}
 
 	static TwoDVector convert(Point2D point2D) {
-		return new TwoDVectorImpl(point2D);
+		return new NativeTwoDVector(point2D);
 	}
 
 	static TwoDVector create(int x, int y) {
-		return new TwoDVectorImpl(x, y);
+		return new NativeTwoDVector(x, y);
 	}
 
 	static TwoDVector create(int x) {
@@ -37,23 +37,23 @@ public interface TwoDVector extends Vector, GenericVector<TwoDVector, TwoDVector
 	}
 
 	static TwoDVector create(double x, double y) {
-		return new TwoDVectorImpl(x, y);
+		return new NativeTwoDVector(x, y);
 	}
 
 	static TwoDVector create(double x) {
-		return new TwoDVectorImpl(x, 0);
+		return new NativeTwoDVector(x, 0);
 	}
 
 	static TwoDVector create() {
-		return new TwoDVectorImpl();
+		return new NativeTwoDVector();
 	}
 
 	static Point2D shift(Point2D point2D, TwoDVector vector) {
-		return add(new TwoDVectorImpl(point2D), vector).toPoint();
+		return add(new NativeTwoDVector(point2D), vector).toPoint();
 	}
 
 	static TwoDVector fromPoints(Point2D a, Point2D b) {
-		return add(new TwoDVectorImpl(a), new TwoDVectorImpl(b));
+		return add(new NativeTwoDVector(a), new NativeTwoDVector(b));
 	}
 
 	Point2D toPoint();
@@ -61,4 +61,8 @@ public interface TwoDVector extends Vector, GenericVector<TwoDVector, TwoDVector
 	double getX();
 
 	double getY();
+
+	default int dimensions() {
+		return 2;
+	}
 }

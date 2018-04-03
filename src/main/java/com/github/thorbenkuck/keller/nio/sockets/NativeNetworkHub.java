@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NetworkHubImpl implements NetworkHub {
+class NativeNetworkHub implements NetworkHub {
 
 	private final ConnectedListener connectedListener = new ConnectedListener();
 	private final ReceivedListener receivedListener = new ReceivedListener();
@@ -32,11 +32,11 @@ class NetworkHubImpl implements NetworkHub {
 		return executorService;
 	}
 
-	private void consume(Exception e) {
+	private void consume(final Exception e) {
 		onException.accept(e);
 	}
 
-	void setOnException(Consumer<Exception> exceptionConsumer){
+	void setOnException(final Consumer<Exception> exceptionConsumer){
 		this.onException = exceptionConsumer;
 	}
 
@@ -45,6 +45,9 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	void setBufferSize(final int bufferSize) {
+		if(bufferSize < 1) {
+			throw new IllegalArgumentException("Buffer size must be 1 or greater");
+		}
 		this.bufferSize = bufferSize;
 	}
 
@@ -58,7 +61,7 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	@Override
-	public void open(final String string, int port) throws IOException {
+	public void open(final String string, final int port) throws IOException {
 		open(new InetSocketAddress(string, port));
 	}
 
@@ -79,8 +82,8 @@ class NetworkHubImpl implements NetworkHub {
 			}
 		});
 		disconnectedListener.add(socketChannel -> {
-			workloadDispenser.remove(socketChannel);
 			try {
+				workloadDispenser.remove(socketChannel);
 				socketChannel.close();
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -88,6 +91,11 @@ class NetworkHubImpl implements NetworkHub {
 		});
 		connectionListener = new NewConnectionListener(connectionSelector, connectedListener, channel);
 		executorService.submit(connectionListener);
+	}
+
+	@Override
+	public ServerSocketChannel getChannel() {
+		return channel;
 	}
 
 	@Override
@@ -115,7 +123,7 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	@Override
-	public void setDeserializer(Function<String, Object> deserializer) {
+	public void setDeserializer(final Function<String, Object> deserializer) {
 		if(!isOpen()) {
 			return;
 		}
@@ -123,7 +131,7 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	@Override
-	public void setSerializer(Function<Object, String> function) {
+	public void setSerializer(final Function<Object, String> function) {
 		if(!isOpen()) {
 			return;
 		}
@@ -131,7 +139,7 @@ class NetworkHubImpl implements NetworkHub {
 	}
 
 	@Override
-	public void send(Object object, SocketChannel socketChannel) throws IOException {
+	public void send(final Object object, final SocketChannel socketChannel) throws IOException {
 		if(!isOpen()) {
 			return;
 		}

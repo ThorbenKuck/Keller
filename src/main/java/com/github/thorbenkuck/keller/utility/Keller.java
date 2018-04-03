@@ -2,30 +2,30 @@ package com.github.thorbenkuck.keller.utility;
 
 import java.util.Objects;
 
-public class Keller {
+public final class Keller {
 
-	public static boolean isNull(Object o) {
+	public static boolean isNull(final Object o) {
 		return Objects.isNull(o);
 	}
 
-	public static void requireNotNull(Object o) {
+	public static void requireNotNull(final Object o) {
 		Objects.requireNonNull(o);
 	}
 
-	public static void requireNotNull(Object... objects) {
-		for(Object o : objects){
+	public static void requireNotNull(final Object... objects) {
+		for(final Object o : objects){
 			requireNotNull(o);
 		}
 	}
 
-	public static void parameterNotNull(Object o) {
+	public static void parameterNotNull(final Object o) {
 		if(isNull(o)) {
 			throw new IllegalArgumentException("Null is not allowed as parameter");
 		}
 	}
 
-	public static void parameterNotNull(Object... objects) {
-		for(Object o : objects) {
+	public static void parameterNotNull(final Object... objects) {
+		for(final Object o : objects) {
 			parameterNotNull(o);
 		}
 	}

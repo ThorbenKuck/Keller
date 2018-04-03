@@ -8,29 +8,29 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class FinalizerImpl<T> implements Finalizer<T> {
+final class FinalizerImpl<T> implements Finalizer<T> {
 
-	private RepositoryInternals repositoryInternals;
-	private ActionStack<T> actionStack;
+	private final RepositoryInternals repositoryInternals;
+	private final ActionStack<T> actionStack;
 
-	public FinalizerImpl(ActionStack<T> actionStack) {
+	public FinalizerImpl(final ActionStack<T> actionStack) {
 		this.repositoryInternals = actionStack.getInternals();
 		this.actionStack = actionStack;
 	}
 
 	@Override
 	public T getFirst() {
-		Optional<Object> optional = getFilteredStream().findFirst();
+		final Optional<Object> optional = getFilteredStream().findFirst();
 		return handle(optional);
 	}
 
 	@Override
 	public T getAny() {
-		Optional<Object> optional = getFilteredStream().findAny();
+		final Optional<Object> optional = getFilteredStream().findAny();
 		return handle(optional);
 	}
 	
-	private T handle(Optional<Object> objectOptional) {
+	private T handle(final Optional<Object> objectOptional) {
 		if(objectOptional.isPresent()) {
 			actionStack.getIfPresent().forEach(Runnable::run);
 			return (T) objectOptional.get();
@@ -42,17 +42,17 @@ public class FinalizerImpl<T> implements Finalizer<T> {
 
 	@Override
 	public Collection<T> getAll() {
-		List<Object> objects = getFilteredStream().collect(Collectors.toCollection(ArrayList::new));
+		final List<Object> objects = getFilteredStream().collect(Collectors.toCollection(ArrayList::new));
 		return (Collection<T>) objects;
 	}
 
 	@Override
-	public T run(Consumer<T> consumer) {
+	public T run(final Consumer<T> consumer) {
 		return null;
 	}
 
 	@Override
-	public T run(Runnable runnable) {
+	public T run(final Runnable runnable) {
 		return null;
 	}
 

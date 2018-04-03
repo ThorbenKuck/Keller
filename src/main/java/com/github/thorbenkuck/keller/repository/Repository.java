@@ -10,8 +10,8 @@ public interface Repository {
 
 	boolean isEmpty();
 
-	void put(Object object);
+	void put(final Object object);
 
-	<T> ConditionalSupplying<T> access(Class<T> clazz);
+	<T> ConditionalSupplying<T> access(final Class<T> clazz);
 
 }

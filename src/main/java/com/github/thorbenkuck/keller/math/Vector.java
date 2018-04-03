@@ -78,4 +78,6 @@ public interface Vector {
 
 	void addBy(double scalar);
 
+	int dimensions();
+
 }

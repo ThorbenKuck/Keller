@@ -2,37 +2,37 @@ package com.github.thorbenkuck.keller.math.d3;
 
 import java.util.function.Function;
 
-class ThreeDVectorImpl implements ThreeDVector {
+final class NativeThreeDVector implements ThreeDVector {
 
 	private double x;
 	private double y;
 	private double z;
 
-	ThreeDVectorImpl(Point3D point3D) {
+	NativeThreeDVector(Point3D point3D) {
 		this.x = point3D.getX();
 		this.y = point3D.getY();
 		this.z = point3D.getZ();
 	}
 
-	ThreeDVectorImpl(double x, double y, double z) {
+	NativeThreeDVector(double x, double y, double z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 	}
 
-	ThreeDVectorImpl(double x, double y) {
+	NativeThreeDVector(double x, double y) {
 		this(x, y, 0);
 	}
 
-	ThreeDVectorImpl() {
+	NativeThreeDVector() {
 		this(0, 0);
 	}
 
-	ThreeDVectorImpl(ThreeDVectorImpl vector) {
+	NativeThreeDVector(NativeThreeDVector vector) {
 		this(vector.x, vector.y, vector.z);
 	}
 
-	ThreeDVectorImpl(ThreeDVector vector) {
+	NativeThreeDVector(ThreeDVector vector) {
 		this(vector.getX(), vector.getY(), vector.getZ());
 	}
 
@@ -45,29 +45,29 @@ class ThreeDVectorImpl implements ThreeDVector {
 
 	@Override
 	public void addBy(int scalar) {
-		addBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		addBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void addBy(double scalar) {
-		addBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		addBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void subtractBy(ThreeDVector scalar) {
-		final ThreeDVectorImpl temp = new ThreeDVectorImpl(scalar);
+		final NativeThreeDVector temp = new NativeThreeDVector(scalar);
 		temp.negate();
 		addBy(temp);
 	}
 
 	@Override
 	public void subtractBy(int scalar) {
-		subtractBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		subtractBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void subtractBy(double scalar) {
-		subtractBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		subtractBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
@@ -79,22 +79,22 @@ class ThreeDVectorImpl implements ThreeDVector {
 
 	@Override
 	public void multiplyBy(int scalar) {
-		multiplyBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		multiplyBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void multiplyBy(double scalar) {
-		multiplyBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		multiplyBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void divideBy(int scalar) {
-		divideBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		divideBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
 	public void divideBy(double scalar) {
-		divideBy(new ThreeDVectorImpl(scalar, scalar, scalar));
+		divideBy(new NativeThreeDVector(scalar, scalar, scalar));
 	}
 
 	@Override
@@ -155,7 +155,7 @@ class ThreeDVectorImpl implements ThreeDVector {
 
 	@Override
 	public ThreeDVector copy() {
-		return new ThreeDVectorImpl(this);
+		return new NativeThreeDVector(this);
 	}
 
 	@Override

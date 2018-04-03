@@ -1,28 +1,33 @@
 package com.github.thorbenkuck.keller.math.matrix;
 
+import com.github.thorbenkuck.keller.annotations.Experimental;
 import com.github.thorbenkuck.keller.datatypes.interfaces.PrettyPrint;
+import com.github.thorbenkuck.keller.math.Vector;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.function.Function;
 
 public interface Matrix extends PrettyPrint {
 
 	static Matrix create(int rows, int columns) {
-		return new MatrixImpl(rows, columns);
+		return new NativeMatrix(rows, columns);
 	}
 
 	static Matrix createCubic(int size) {
-		return new MatrixImpl(size);
+		return new NativeMatrix(size);
 	}
 
 	static Matrix copy(Matrix matrix) {
-		return new MatrixImpl(matrix);
+		return new NativeMatrix(matrix);
 	}
 
 	static Matrix multiply(Matrix a, Matrix b) {
 		if (a.getColumns() != b.getRows()) {
 			throw new RuntimeException("Illegal matrix dimensions.");
 		}
-		Matrix c = new MatrixImpl(a.getRows(), b.getColumns());
+		Matrix c = new NativeMatrix(a.getRows(), b.getColumns());
 		for (int i = 0; i < c.getRows(); i++) {
 			for (int j = 0; j < c.getColumns(); j++) {
 				for (int k = 0; k < a.getColumns(); k++) {
@@ -37,7 +42,7 @@ public interface Matrix extends PrettyPrint {
 	static Matrix transpose(Matrix base) {
 		int rows = base.getRows();
 		int columns = base.getColumns();
-		Matrix a = new MatrixImpl(columns, rows);
+		Matrix a = new NativeMatrix(columns, rows);
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < columns; j++) {
 				a.setPoint(j, i, base.getPoint(i, j));
@@ -47,7 +52,7 @@ public interface Matrix extends PrettyPrint {
 	}
 
 	static Matrix fromArray(Double[] array) {
-		Matrix matrix = new MatrixImpl(array.length, 1);
+		Matrix matrix = new NativeMatrix(array.length, 1);
 		for (int i = 0; i < array.length; i++) {
 			matrix.setPoint(i, 0, array[i]);
 		}
@@ -55,24 +60,33 @@ public interface Matrix extends PrettyPrint {
 	}
 
 	static Matrix subtract(Matrix a, Matrix b) {
-		Matrix c = new MatrixImpl(a);
+		Matrix c = new NativeMatrix(a);
 		c.minus(b);
 
 		return c;
 	}
 
 	static Matrix map(Matrix a, Function<Double, Double> function) {
-		Matrix result = new MatrixImpl(a);
+		Matrix result = new NativeMatrix(a);
 		result.map(function);
 
 		return result;
 	}
 
 	static Matrix map(Matrix a, MatrixFunction function) {
-		Matrix result = new MatrixImpl(a);
+		Matrix result = new NativeMatrix(a);
 		result.map(function);
 
 		return result;
+	}
+
+	@Experimental
+	static Matrix fromVectors(Vector vector, Vector... excessive) {
+		final List<Vector> vectors = new ArrayList<>();
+		vectors.add(vector);
+		vectors.addAll(Arrays.asList(excessive));
+
+		return MatrixFactory.fromVectors(vectors);
 	}
 
 	int columns();
@@ -95,9 +109,6 @@ public interface Matrix extends PrettyPrint {
 
 	double sum();
 
-	/**
-	 * the Sum of all values, treated absolute
-	 */
 	double absSum();
 
 	void minus(Matrix b);

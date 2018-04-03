@@ -6,23 +6,23 @@ import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 
-class MatrixImpl implements Matrix {
+class NativeMatrix implements Matrix {
 
 	private double[][] data;
 	private int rows;
 	private int columns;
 
-	MatrixImpl(int size) {
+	NativeMatrix(int size) {
 		this(size, size);
 	}
 
-	MatrixImpl(int rows, int columns) {
+	NativeMatrix(int rows, int columns) {
 		data = new double[rows][columns];
 		this.rows = rows;
 		this.columns = columns;
 	}
 
-	MatrixImpl(Matrix matrix) {
+	NativeMatrix(Matrix matrix) {
 		this.data = matrix.toArray();
 		this.rows = matrix.getRows();
 		this.columns = matrix.getColumns();
@@ -271,9 +271,9 @@ class MatrixImpl implements Matrix {
 	@Override
 	public boolean equals(Object o) {
 		if (this == o) return true;
-		if (!(o instanceof MatrixImpl)) return false;
+		if (!(o instanceof NativeMatrix)) return false;
 
-		MatrixImpl matrix = (MatrixImpl) o;
+		NativeMatrix matrix = (NativeMatrix) o;
 		return equalTo(matrix);
 	}
 

@@ -8,16 +8,16 @@ import java.util.function.Supplier;
 
 public interface NotPresentHandler<T> {
 
-	WayPoint<T> throwException(RuntimeException e);
+	WayPoint<T> throwException(final RuntimeException e);
 
-	WayPoint<T> throwError(Error error);
+	WayPoint<T> throwError(final Error error);
 
-	WayPoint<T> getNullObject(Supplier<T> t);
+	WayPoint<T> getNullObject(final Supplier<T> t);
 
-	WayPoint<T> run(Runnable runnable);
+	WayPoint<T> run(final Runnable runnable);
 
-	WayPoint<T> run(QueuedAction queuedAction);
+	WayPoint<T> run(final QueuedAction queuedAction);
 
-	WayPoint<T> handleAllOfSameType(Consumer<Collection<T>> consumer);
+	WayPoint<T> handleAllOfSameType(final Consumer<Collection<T>> consumer);
 
 }

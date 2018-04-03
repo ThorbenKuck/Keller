@@ -2,9 +2,9 @@ package com.github.thorbenkuck.keller.observers;
 
 public interface GenericObservable<T> {
 
-	void addObserver(GenericObserver<T> genericObserver);
+	void addObserver(final GenericObserver<T> genericObserver);
 
-	boolean deleteObserver(GenericObserver<T> genericObserver);
+	boolean deleteObserver(final GenericObserver<T> genericObserver);
 
 	void deleteObservers();
 

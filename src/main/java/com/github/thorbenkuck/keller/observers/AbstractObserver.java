@@ -12,7 +12,7 @@ public abstract class AbstractObserver<T> implements GenericObserver<T> {
 		this.tClass = tClass;
 	}
 
-	public final boolean accept(T t) {
+	public final boolean accept(final T t) {
 		return tClass == null || tClass.equals(t);
 	}
 }

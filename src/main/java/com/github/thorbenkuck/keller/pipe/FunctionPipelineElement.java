@@ -15,7 +15,7 @@ public class FunctionPipelineElement<T> implements APIPipelineElement<T> {
 	}
 
 	@Override
-	public T apply(T t) {
+	public T apply(final T t) {
 		if (test(t)) {
 			getFunction().apply(t);
 		}
@@ -24,17 +24,17 @@ public class FunctionPipelineElement<T> implements APIPipelineElement<T> {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
+	public boolean equals(final Object obj) {
 		return obj != null && obj.getClass().equals(FunctionPipelineElement.class) && function.equals(((FunctionPipelineElement) obj).getFunction());
 	}
 
 	@Override
-	public void addCondition(Predicate<T> predicate) {
+	public void addCondition(final Predicate<T> predicate) {
 		predicates.add(predicate);
 	}
 
 	boolean test(T t) {
-		for (Predicate<T> predicate : predicates) {
+		for (final Predicate<T> predicate : predicates) {
 			if (! predicate.test(t)) {
 				return false;
 			}

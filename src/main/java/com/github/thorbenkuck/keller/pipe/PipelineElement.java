@@ -4,9 +4,9 @@ import java.util.function.Function;
 
 public interface PipelineElement<T> extends Function<T, T> {
 	@Override
-	T apply(T t);
+	T apply(final T t);
 
-	default void encountered(Throwable t) {
+	default void encountered(final Throwable t) {
 		t.printStackTrace(System.out);
 	}
 }

@@ -1,29 +1,26 @@
 package com.github.thorbenkuck.keller.sync;
 
-public class EmptySynchronize implements Synchronize {
+public final class EmptySynchronize implements Synchronize {
 
 	/**
 	 * This method-call is ignored
 	 */
 	@Override
-	public void error() {
-
+	public final void error() {
 	}
 
 	/**
 	 * This method-call is ignored
 	 */
 	@Override
-	public void goOn() {
-
+	public final void goOn() {
 	}
 
 	/**
 	 * This method-call is ignored
 	 */
 	@Override
-	public void reset() {
-
+	public final void reset() {
 	}
 
 
@@ -31,7 +28,6 @@ public class EmptySynchronize implements Synchronize {
 	 * This method-call is ignored
 	 */
 	@Override
-	public void synchronize() {
-
+	public final void synchronize() {
 	}
 }

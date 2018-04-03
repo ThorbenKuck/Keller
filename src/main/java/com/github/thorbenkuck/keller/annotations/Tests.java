@@ -30,8 +30,8 @@ import java.lang.annotation.*;
  * to manually write it this way. The following is also perfectly okay:
  * <p>
  * <pre><code>
- * {@literal @}Tested(responsibleTest = "package.of.unit.test.TestOne"),
- * {@literal @}Tested(responsibleTest = "package.of.unit.test.TestTwo"),
+ * {@literal @}Tested(responsibleTest = "package.of.unit.test.TestOne")
+ * {@literal @}Tested(responsibleTest = "package.of.unit.test.TestTwo")
  * {@literal @}Tested(responsibleTest = "package.of.integration.test.Test", unitTest = false)
  * public class ModuleThatIsTested {
  *     // ...

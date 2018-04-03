@@ -6,10 +6,14 @@ import java.util.function.Consumer;
 public interface NetworkHubFactory extends NetworkFactory<NetworkHub, NetworkHubFactory> {
 
 	static NetworkHubFactory create() {
-		return new LocalNetworkHubFactory();
+		return new NativeNetworkHubFactory();
 	}
 
-	NetworkHubFactory onConnect(Consumer<SocketChannel> consumer);
+	NetworkHubFactory onConnect(final Consumer<SocketChannel> consumer);
 
-	NetworkHubFactory workloadPerSelector(int workload);
+	NetworkHubFactory workloadPerSelector(final int workload);
+
+	default NetworkHubFactory unlimitedWorkloadPerSelector() {
+		return workloadPerSelector(-1);
+	}
 }

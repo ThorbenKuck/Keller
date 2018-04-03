@@ -2,6 +2,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.List;
 import java.util.function.Consumer;
@@ -14,6 +15,10 @@ public interface NetworkHub {
 	void open(String string, int port) throws IOException;
 
 	void open(InetSocketAddress inetSocketAddress) throws IOException;
+
+	ServerSocketChannel getChannel();
+
+	WorkloadDispenser workloadDispenser();
 
 	void addReceivedListener(Consumer<Message> consumer);
 
@@ -28,8 +33,6 @@ public interface NetworkHub {
 	void send(Object object, SocketChannel socketChannel) throws IOException;
 
 	void close() throws IOException;
-
-	WorkloadDispenser workloadDispenser();
 
 	boolean isOpen();
 }

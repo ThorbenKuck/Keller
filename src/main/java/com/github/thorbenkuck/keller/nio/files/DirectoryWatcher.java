@@ -22,4 +22,6 @@ public interface DirectoryWatcher {
 	void watch(Path directoryPath) throws DirectoryWatcherException;
 
 	void stopWatching();
+
+	void close();
 }

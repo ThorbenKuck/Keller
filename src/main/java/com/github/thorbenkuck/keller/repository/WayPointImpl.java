@@ -2,9 +2,9 @@ package com.github.thorbenkuck.keller.repository;
 
 class WayPointImpl<T> implements WayPoint<T> {
 
-	private ActionStack<T> actionStack;
+	private final ActionStack<T> actionStack;
 
-	WayPointImpl(ActionStack<T> actionStack) {
+	WayPointImpl(final ActionStack<T> actionStack) {
 		this.actionStack = actionStack;
 	}
 

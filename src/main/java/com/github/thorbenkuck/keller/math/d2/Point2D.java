@@ -3,7 +3,7 @@ package com.github.thorbenkuck.keller.math.d2;
 /**
  * This is an immutable point for position in a 2-Dimensional plane
  */
-public class Point2D {
+public final class Point2D {
 
 	private final double x;
 	private final double y;
@@ -13,11 +13,11 @@ public class Point2D {
 		this.y = y;
 	}
 
-	public double getX() {
+	public final double getX() {
 		return x;
 	}
 
-	public double getY() {
+	public final double getY() {
 		return y;
 	}
 }

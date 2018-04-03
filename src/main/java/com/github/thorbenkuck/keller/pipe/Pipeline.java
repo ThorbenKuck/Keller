@@ -1,8 +1,6 @@
 package com.github.thorbenkuck.keller.pipe;
 
-import com.github.thorbenkuck.keller.datatypes.QueuedPipeline;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Closable;
-import com.github.thorbenkuck.keller.datatypes.interfaces.GenericRunnable;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Lockable;
 
 import java.util.function.Consumer;
@@ -11,20 +9,20 @@ import java.util.function.Function;
 public interface Pipeline<T> extends Function<T, T>, Closable, Lockable {
 
 	static <T> Pipeline<T> unifiedCreation() {
-		return new QueuedPipeline<>();
+		return new NativePipeline<>();
 	}
 
-	PipelineCondition<T> addLast(Consumer<T> pipelineService);
+	PipelineCondition<T> addLast(final Consumer<T> pipelineService);
 
-	PipelineCondition<T> addLast(Function<T, T> pipelineService);
+	PipelineCondition<T> addLast(final Function<T, T> pipelineService);
 
-	PipelineCondition<T> addFirst(Consumer<T> pipelineService);
+	PipelineCondition<T> addFirst(final Consumer<T> pipelineService);
 
-	PipelineCondition<T> addFirst(Function<T, T> pipelineService);
+	PipelineCondition<T> addFirst(final Function<T, T> pipelineService);
 
-	void remove(Consumer<T> pipelineService);
+	void remove(final Consumer<T> pipelineService);
 
-	void remove(Function<T, T> pipelineService);
+	void remove(final Function<T, T> pipelineService);
 
 	int size();
 
@@ -32,17 +30,25 @@ public interface Pipeline<T> extends Function<T, T>, Closable, Lockable {
 
 	boolean isEmpty();
 
-	boolean contains(Function<T, T> pipelineService);
+	boolean contains(final Function<T, T> pipelineService);
 
-	boolean contains(Consumer<T> pipelineService);
+	boolean contains(final Consumer<T> pipelineService);
 
-	default void ifClosed(Consumer<Pipeline> consumer) {
+	default PipelineCondition<T> add(final Consumer<T> pipelineService) {
+		return addFirst(pipelineService);
+	}
+
+	default PipelineCondition<T> add(final Function<T, T> pipelineService) {
+		return addFirst(pipelineService);
+	}
+
+	default void ifClosed(final Consumer<Pipeline> consumer) {
 		if(isClosed()) {
 			consumer.accept(this);
 		}
 	}
 
-	default void ifOpen(Consumer<Pipeline> consumer) {
+	default void ifOpen(final Consumer<Pipeline> consumer) {
 		if(!isClosed()) {
 			consumer.accept(this);
 		}

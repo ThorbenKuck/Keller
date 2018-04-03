@@ -4,17 +4,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
 
-class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
+final class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 
-	private RepositoryInternals repositoryInternals;
-	private Class<?> clazz;
+	private final RepositoryInternals repositoryInternals;
+	private final Class<T> clazz;
 	private final ActionStack<T> actionStack;
 
-	ConditionalSupplyingImpl(RepositoryInternals repositoryInternals, Class<T> clazz) {
+	ConditionalSupplyingImpl(final RepositoryInternals repositoryInternals, final Class<T> clazz) {
 		this(repositoryInternals, clazz, new ActionStack<>(repositoryInternals, clazz));
 	}
 
-	ConditionalSupplyingImpl(RepositoryInternals repositoryInternals, Class<T> clazz, ActionStack<T> actionStack) {
+	ConditionalSupplyingImpl(final RepositoryInternals repositoryInternals, final Class<T> clazz, final ActionStack<T> actionStack) {
 		this.repositoryInternals = repositoryInternals;
 		this.clazz = clazz;
 		this.actionStack = actionStack;
@@ -22,7 +22,7 @@ class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 
 	@Override
 	public T getFirst() {
-		Optional<Object> toReturn = repositoryInternals.stream()
+		final Optional<Object> toReturn = repositoryInternals.stream()
 				.filter(o -> o.getClass().equals(clazz))
 				.findFirst();
 		return (T) toReturn.orElse(null);
@@ -30,7 +30,7 @@ class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 
 	@Override
 	public T getAny() {
-		Optional<Object> toReturn = repositoryInternals.stream()
+		final Optional<Object> toReturn = repositoryInternals.stream()
 				.filter(o -> o.getClass().equals(clazz))
 				.findAny();
 		return (T) toReturn.orElse(null);
@@ -38,7 +38,7 @@ class ConditionalSupplyingImpl<T> implements ConditionalSupplying<T> {
 
 	@Override
 	public Collection<T> getAll() {
-		Collection<Object> toReturn = new ArrayList<>();
+		final Collection<Object> toReturn = new ArrayList<>();
 		repositoryInternals.stream()
 				.filter(o -> o.getClass().equals(clazz))
 				.forEach(toReturn::add);

@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-class ActionStack<T> {
+final class ActionStack<T> {
 
 	private final List<Predicate<T>> predicateList = new ArrayList<>();
 	private final List<Consumer<T>> consumers = new ArrayList<>();
@@ -17,7 +17,7 @@ class ActionStack<T> {
 	private T nullObject;
 	private Class<T> clazz;
 
-	ActionStack(RepositoryInternals internals, Class<T> clazz) {
+	ActionStack(final RepositoryInternals internals, final Class<T> clazz) {
 		this.internals = internals;
 		this.clazz = clazz;
 	}
@@ -30,7 +30,7 @@ class ActionStack<T> {
 		return ifPresent;
 	}
 
-	public void addIfPresent(Runnable ifPresent) {
+	public void addIfPresent(final Runnable ifPresent) {
 		this.ifPresent.add(ifPresent);
 	}
 
@@ -38,7 +38,7 @@ class ActionStack<T> {
 		return ifNotPresent;
 	}
 
-	public void addIfNotPresent(Runnable ifNotPresent) {
+	public void addIfNotPresent(final Runnable ifNotPresent) {
 		this.ifNotPresent.add(ifNotPresent);
 	}
 
@@ -61,11 +61,11 @@ class ActionStack<T> {
 		return primaryMatchingElement;
 	}
 
-	public void setPrimaryMatchingElement(T primaryMatchingElement) {
+	public void setPrimaryMatchingElement(final T primaryMatchingElement) {
 		this.primaryMatchingElement = primaryMatchingElement;
 	}
 
-	public void addPredicate(Predicate<T> predicate) {
+	public void addPredicate(final Predicate<T> predicate) {
 		this.predicateList.add(predicate);
 	}
 
@@ -73,7 +73,7 @@ class ActionStack<T> {
 		return nullObject;
 	}
 
-	public void setNullObject(T nullObject) {
+	public void setNullObject(final T nullObject) {
 		this.nullObject = nullObject;
 	}
 

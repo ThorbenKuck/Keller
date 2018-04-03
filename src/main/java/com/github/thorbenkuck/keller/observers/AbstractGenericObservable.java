@@ -11,7 +11,7 @@ public abstract class AbstractGenericObservable<T> implements GenericObservable<
 	private final List<GenericObserver<T>> obs = new ArrayList<>();
 
 	private List<GenericObserver<T>> threadSafeCopyObservers() {
-		List<GenericObserver<T>> result;
+		final List<GenericObserver<T>> result;
 		synchronized (this) {
 			if (! hasChanged()) {
 				return new ArrayList<>();
@@ -26,7 +26,7 @@ public abstract class AbstractGenericObservable<T> implements GenericObservable<
 	}
 
 	@Override
-	public void addObserver(GenericObserver<T> genericObserver) {
+	public void addObserver(final GenericObserver<T> genericObserver) {
 		Objects.requireNonNull(genericObserver);
 		synchronized (obs) {
 			if (! this.obs.contains(genericObserver)) {
@@ -36,7 +36,7 @@ public abstract class AbstractGenericObservable<T> implements GenericObservable<
 	}
 
 	@Override
-	public boolean deleteObserver(GenericObserver<T> genericObserver) {
+	public boolean deleteObserver(final GenericObserver<T> genericObserver) {
 		Objects.requireNonNull(genericObserver);
 		synchronized (obs) {
 			return obs.remove(genericObserver);
@@ -62,10 +62,10 @@ public abstract class AbstractGenericObservable<T> implements GenericObservable<
 		}
 	}
 
-	protected void notifyObservers(T o) {
-		List<GenericObserver<T>> observers = threadSafeCopyObservers();
+	protected void notifyObservers(final T o) {
+		final List<GenericObserver<T>> observers = threadSafeCopyObservers();
 
-		for (GenericObserver<T> observer : observers) {
+		for (final GenericObserver<T> observer : observers) {
 			if (observer.accepts(o)) {
 				observer.update(o, this);
 			}

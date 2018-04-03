@@ -7,14 +7,22 @@ public interface Synchronize extends Awaiting {
 		return SynchronizeCache.getEmpty();
 	}
 
-	static Synchronize createDefault() { return new DefaultSynchronize(); }
+	static Synchronize createDefault() { return ofSemaphore(); }
+
+	static Synchronize ofSemaphore() {
+		return new DefaultSemaphoreSynchronize();
+	}
+
+	static Synchronize ofCountDownLatch() {
+		return new DefaultCountDownLatchSynchronize();
+	}
 
 	static boolean isEmpty(Synchronize synchronize) {
-		return synchronize == empty();
+		return isEmpty((Awaiting) synchronize);
 	}
 
 	static boolean isEmpty(Awaiting awaiting) {
-		return awaiting == empty();
+		return SynchronizeCache.isEmpty(awaiting) || (awaiting != null && awaiting.getClass().equals(EmptySynchronize.class));
 	}
 
 	void error();

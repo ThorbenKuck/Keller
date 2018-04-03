@@ -4,22 +4,21 @@ import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-class GenericObservableValue<T> implements ObservableValue<T> {
+final class NativeObservableValue<T> implements ObservableValue<T> {
 
 	private final List<ValueListener<T>> observers = new ArrayList<>();
 	private final AtomicBoolean changed = new AtomicBoolean(false);
 	private final AtomicReference<T> value = new AtomicReference<>();
 	private final AtomicReference<T> temp = new AtomicReference<>();
 
-	GenericObservableValue() {
+	NativeObservableValue() {
 		this(null);
 	}
 
-	GenericObservableValue(T t) {
+	NativeObservableValue(final T t) {
 		set0(t);
 	}
 
@@ -27,7 +26,7 @@ class GenericObservableValue<T> implements ObservableValue<T> {
 		if(!changed.get()) {
 			return new ValueListener[0];
 		}
-		List<ValueListener<T>> result;
+		final List<ValueListener<T>> result;
 		synchronized (observers) {
 			result = new ArrayList<>(observers);
 		}
@@ -39,14 +38,14 @@ class GenericObservableValue<T> implements ObservableValue<T> {
 		if(!changed.get()) {
 			return;
 		}
-		ValueListener[] observers = copyObservers();
+		final ValueListener[] observers = copyObservers();
 
 		T t;
 		synchronized (temp) {
 			t = temp.get();
 		}
 
-		for(ValueListener listener : observers) {
+		for(final ValueListener listener : observers) {
 			((ValueListener<T>)listener).onChange(t, this);
 		}
 	}
@@ -65,7 +64,7 @@ class GenericObservableValue<T> implements ObservableValue<T> {
 		return current;
 	}
 
-	private void set0(T t) {
+	private void set0(final T t) {
 		synchronized (value) {
 			value.set(t);
 		}
@@ -131,11 +130,16 @@ class GenericObservableValue<T> implements ObservableValue<T> {
 
 	@Override
 	public void update() {
-		T current = get0();
+		final T current = get0();
 		synchronized (temp) {
 			temp.set(current);
 		}
 
 		update0();
+	}
+
+	@Override
+	public void clear() {
+		set0(null);
 	}
 }

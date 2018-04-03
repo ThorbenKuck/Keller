@@ -1,8 +1,8 @@
 package com.github.thorbenkuck.keller.repository;
 
-public class ListingRepository implements Repository {
+class ListingRepository implements Repository {
 
-	private RepositoryInternals repositoryInternals = new RepositoryInternals();
+	private final RepositoryInternals repositoryInternals = new RepositoryInternals();
 
 	@Override
 	public boolean clear() {
@@ -15,7 +15,7 @@ public class ListingRepository implements Repository {
 	}
 
 	@Override
-	public void put(Object object) {
+	public void put(final Object object) {
 		repositoryInternals.add(object);
 	}
 

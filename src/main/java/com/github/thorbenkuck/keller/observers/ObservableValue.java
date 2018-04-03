@@ -5,29 +5,24 @@ import com.github.thorbenkuck.keller.utility.Keller;
 
 public interface ObservableValue<T> extends Value<T> {
 
-	static <T> ObservableValue<T> of(T t) {
+	static <T> ObservableValue<T> of(final T t) {
 		Keller.parameterNotNull(t);
-		return new GenericObservableValue<>(t);
+		return new NativeObservableValue<>(t);
 	}
 
 	static <T> ObservableValue<T> empty() {
-		return new GenericObservableValue<>();
+		return new NativeObservableValue<>();
 	}
 
-	void set(T t);
+	void addObserver(final ValueListener<T> genericObserver);
 
-	void addObserver(ValueListener<T> genericObserver);
-
-	boolean deleteObserver(ValueListener<T> genericObserver);
+	boolean deleteObserver(final ValueListener<T> genericObserver);
 
 	void deleteObservers();
 
 	boolean hasChanged();
 
-	boolean isEmpty();
-
 	int countObservers();
 
 	void update();
-
 }
