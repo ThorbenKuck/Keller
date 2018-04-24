@@ -7,7 +7,7 @@ import java.util.Collection;
 
 public interface Enforcer<T> extends GenericRunnable<T> {
 
-	static <T> Enforcer<T> unifiedCreation() {
+	static <T> Enforcer<T> create() {
 		return new CommandEnforcer<>();
 	}
 

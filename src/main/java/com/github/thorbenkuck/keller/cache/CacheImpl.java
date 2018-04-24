@@ -1,10 +1,12 @@
 package com.github.thorbenkuck.keller.cache;
 
+import com.github.thorbenkuck.keller.annotations.APILevel;
 import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.util.*;
 
-class CacheImpl implements Cache {
+@APILevel
+final class CacheImpl implements Cache {
 
 	private final Map<Class<?>, Object> internals = new HashMap<>();
 	private final Map<Class<?>, List<CacheObserver<?>>> observers = new HashMap<>();

@@ -1,7 +1,11 @@
 package com.github.thorbenkuck.keller.command;
 
+import com.github.thorbenkuck.keller.annotations.APILevel;
 import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.pipe.Pipeline;
+import com.github.thorbenkuck.keller.sync.Synchronize;
+import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,60 +14,50 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-public class CommandEnforcer<T> implements Enforcer<T> {
+@APILevel
+final class CommandEnforcer<T> implements Enforcer<T> {
 
-	private boolean running = false;
-	private final Lock countDownLock = new ReentrantLock(false);
+	private final Value<Boolean> running = Value.of(false);
 	private final Lock lock = new ReentrantLock(false);
 	private final Pipeline<T> pipeline = Pipeline.unifiedCreation();
-	private QueuedAction onFinish = () -> {};
-	private CountDownLatch countDownLatch = new CountDownLatch(0);
+	private final Value<QueuedAction> onFinish = Value.of(() -> {});
+	private final Synchronize synchronize = Synchronize.createDefault();
 
-	public CommandEnforcer() {
+	@APILevel
+	CommandEnforcer() {
 		// Do nothing. This Constructor
 		// exists, so that an empty
 		// CommandEnforcer can be created
 		// (without any internal Elements)
 	}
 
-	public CommandEnforcer(Collection<Command<T>> core) {
+	@APILevel
+	CommandEnforcer(final Collection<Command<T>> core) {
 		addCommand(core);
 	}
 
-	public CommandEnforcer(Command<T>... coreArray) {
+	@APILevel
+	CommandEnforcer(final Command<T>... coreArray) {
 		this(Arrays.asList(coreArray));
 	}
 
-	private void overrideExistingCountDownLatch() {
-		try {
-			countDownLock.lock();
-			while (countDownLatch.getCount() > 0) {
-				countDownLatch.countDown();
-			}
-		} finally {
-			countDownLock.unlock();
-		}
-	}
-
 	private void setUp() {
-		running = true;
-		if (countDownLatch.getCount() > 0) {
-			overrideExistingCountDownLatch();
-		}
-		countDownLatch = new CountDownLatch(1);
+		running.set(false);
+		synchronize.goOn();
+		synchronize.reset();
 	}
 
 	private void afterRun() {
 		if(onFinish != null) {
-			QueuedAction.call(onFinish);
+			QueuedAction.call(onFinish.get());
 		}
 	}
 
 	@Override
-	public void run(T t) {
+	public void run(final T t) {
 		try {
 			lock.lock();
-			running = true;
+			running.set(true);
 			setUp();
 			synchronized (pipeline) {
 				pipeline.apply(t);
@@ -72,49 +66,50 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			countDownLatch.countDown();
+			synchronize.goOn();
 			lock.unlock();
-			running = false;
+			running.set(false);
 		}
 	}
 
 	@Override
 	public void awaitFinish() throws InterruptedException {
-		countDownLatch.await();
+		synchronize.synchronize();
 	}
 
 	@Override
-	public void setDoOnFinish(QueuedAction queuedAction) {
-		if(queuedAction == null) {
-			throw new IllegalArgumentException("QueuedAction provided cannot be null!");
-		}
-		this.onFinish = queuedAction;
+	public void setDoOnFinish(final QueuedAction queuedAction) {
+		Keller.parameterNotNull(queuedAction);
+		this.onFinish.set(queuedAction);
 	}
 
 	@Override
-	public void addCommand(Command<T> command) {
+	public void addCommand(final Command<T> command) {
+		Keller.parameterNotNull(command);
 		synchronized (pipeline) {
 			pipeline.addLast(new CommandWrapper<>(command));
 		}
 	}
 
 	@Override
-	public void addCommand(Collection<Command<T>> commandCollection) {
+	public void addCommand(final Collection<Command<T>> commandCollection) {
+		Keller.parameterNotNull(commandCollection);
 		for(Command<T> command : commandCollection) {
+			Keller.parameterNotNull(command);
 			addCommand(command);
 		}
 	}
 
 	@Override
 	public boolean running() {
-		return running;
+		return running.get();
 	}
 
 	private final class CommandWrapper<U> implements Consumer<U> {
 
 		private final Command<U> command;
 
-		private CommandWrapper(Command<U> command) {
+		private CommandWrapper(final Command<U> command) {
 			this.command = command;
 		}
 
@@ -124,13 +119,12 @@ public class CommandEnforcer<T> implements Enforcer<T> {
 		 * @param u the input argument
 		 */
 		@Override
-		public void accept(U u) {
-			command.execute(u);
-			command.afterExecution();
+		public void accept(final U u) {
+			Command.run(command, u);
 		}
 
 		@Override
-		public boolean equals(Object object) {
+		public boolean equals(final Object object) {
 			if (this == object) return true;
 			if (object == null) return false;
 			if (!(object instanceof CommandWrapper)) {

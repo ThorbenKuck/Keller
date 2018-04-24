@@ -1,19 +1,18 @@
 package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.annotations.Testing;
-import com.github.thorbenkuck.keller.command.CommandEnforcer;
 import com.github.thorbenkuck.keller.command.Enforcer;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 
-@Testing({Enforcer.class, CommandEnforcer.class})
+@Testing({Enforcer.class})
 public class CommandEnforcerTest {
 
 	@Test
 	public void basicTest() {
 		TestObject testObject = new TestObject();
-		Enforcer<TestObject> enforcer = new CommandEnforcer<>();
+		Enforcer<TestObject> enforcer = Enforcer.create();
 
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() + 1));
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() * 2));
@@ -26,7 +25,7 @@ public class CommandEnforcerTest {
 	@Test
 	public void inverseBasicTest() {
 		TestObject testObject = new TestObject();
-		Enforcer<TestObject> enforcer = new CommandEnforcer<>();
+		Enforcer<TestObject> enforcer = Enforcer.create();
 
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() * 2));
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() + 1));
@@ -39,7 +38,7 @@ public class CommandEnforcerTest {
 	@Test
 	public void testCleanUp() {
 		final TestObject testObject = new TestObject();
-		Enforcer<TestObject> enforcer = new CommandEnforcer<>();
+		Enforcer<TestObject> enforcer = Enforcer.create();
 		enforcer.setDoOnFinish(() -> testObject.setValue(12));
 
 		enforcer.addCommand(testObject1 -> testObject1.setValue(testObject1.getValue() + 1));
@@ -52,7 +51,7 @@ public class CommandEnforcerTest {
 
 	@Test
 	public void testCreation() {
-		Enforcer<TestObject> enforcer = Enforcer.unifiedCreation();
+		Enforcer<TestObject> enforcer = Enforcer.create();
 	}
 
 }
