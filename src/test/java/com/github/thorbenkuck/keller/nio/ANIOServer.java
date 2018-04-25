@@ -142,7 +142,7 @@ public class ANIOServer {
 //			}
 //
 //			System.out.println("Closing NetworkHub");
-//			hub.close();
+//			hub.clear();
 //			System.out.println("Closed");
 		} catch (IOException e) {
 			addException(e);

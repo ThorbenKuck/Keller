@@ -3,13 +3,13 @@ package com.github.thorbenkuck.keller.event;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-class Listening {
+class EventBridgeHook implements EventBridge {
 
 	private final Object object;
 	private final Method method;
 	private final Class<?> parameterType;
 
-	Listening(Object object, Method method) {
+	EventBridgeHook(Object object, Method method) {
 		if(method.getParameterCount() != 1) {
 			throw new IllegalArgumentException();
 		}
@@ -18,7 +18,8 @@ class Listening {
 		parameterType = method.getParameterTypes()[0];
 	}
 
-	Object trigger(Object event) {
+	@Override
+	public Object trigger(Object event) {
 		boolean access = method.isAccessible();
 		method.setAccessible(true);
 		Object result = null;
@@ -37,11 +38,13 @@ class Listening {
 		return result;
 	}
 
-	boolean isApplicable(Object event) {
+	@Override
+	public boolean isApplicable(Object event) {
 		return event != null && parameterType.equals(event.getClass());
 	}
 
-	Class<?> getEventType() {
+	@Override
+	public Class<?> getEventType() {
 		return parameterType;
 	}
 
@@ -50,7 +53,7 @@ class Listening {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 
-		Listening listening = (Listening) o;
+		EventBridgeHook listening = (EventBridgeHook) o;
 
 		return object.equals(listening.object) && method.equals(listening.method) && parameterType.equals(listening.parameterType);
 	}

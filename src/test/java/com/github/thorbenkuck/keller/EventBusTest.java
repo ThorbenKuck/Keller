@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.event.DeadEvent;
 import com.github.thorbenkuck.keller.event.EventBus;
 import com.github.thorbenkuck.keller.event.Hook;
 import org.junit.Ignore;
@@ -11,11 +12,12 @@ public class EventBusTest {
 	@Test
 	public void test() {
 		EventBus eventBus = EventBus.create();
-		TestObject object = new TestObject();
-		eventBus.register(object);
+		TestObject testObject = new TestObject();
+		eventBus.hook(testObject);
+		eventBus.register(new DeadEventHandler());
 		eventBus.register(new SecondTestObject());
 		eventBus.post(new TestEvent());
-		eventBus.unregister(object);
+		eventBus.unregister(testObject);
 		eventBus.post(new TestEvent());
 	}
 
@@ -33,6 +35,13 @@ public class EventBusTest {
 		@Hook
 		public void handle(SecondTestEvent event) {
 			System.out.println("[SecondTestObject]: " + event.message);
+		}
+	}
+
+	private final class DeadEventHandler {
+		@Hook
+		public void handle(DeadEvent deadEvent) {
+			System.out.println("No Handler found for " + deadEvent.getEvent().getClass());
 		}
 	}
 

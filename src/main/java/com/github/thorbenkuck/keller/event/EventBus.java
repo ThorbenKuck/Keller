@@ -12,8 +12,12 @@ public interface EventBus {
 
 	void register(Object object);
 
+	void hook(Object object);
+
 	void unregister(Object object);
 
 	void post(Object object);
+
+	void clear();
 
 }

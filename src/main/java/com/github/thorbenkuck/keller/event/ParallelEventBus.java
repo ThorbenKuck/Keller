@@ -8,6 +8,11 @@ class ParallelEventBus implements EventBus {
 	}
 
 	@Override
+	public void hook(Object object) {
+
+	}
+
+	@Override
 	public void unregister(Object object) {
 
 	}
