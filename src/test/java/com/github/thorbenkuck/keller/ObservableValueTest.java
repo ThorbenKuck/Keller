@@ -2,6 +2,7 @@ package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.annotations.Testing;
 import com.github.thorbenkuck.keller.observers.ObservableValue;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
@@ -9,6 +10,7 @@ import static org.junit.Assert.assertEquals;
 @Testing(ObservableValue.class)
 public class ObservableValueTest {
 
+	@Ignore
 	@Test
 	public void run() {
 
