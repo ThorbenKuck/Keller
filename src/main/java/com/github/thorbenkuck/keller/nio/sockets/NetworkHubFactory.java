@@ -16,4 +16,6 @@ public interface NetworkHubFactory extends NetworkFactory<NetworkHub, NetworkHub
 	default NetworkHubFactory unlimitedWorkloadPerSelector() {
 		return workloadPerSelector(-1);
 	}
+
+	NetworkHubFactory selectorChannelStrategy(ChoosingStrategy strategy);
 }

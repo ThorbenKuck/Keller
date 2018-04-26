@@ -2,7 +2,7 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.util.List;
 
-class FirstFitChoosingStrategy implements ChoosingStrategy {
+final class ChoosingStrategyFirstFit implements ChoosingStrategy {
 	/**
 	 * Applies this function to the given argument.
 	 *
@@ -10,7 +10,7 @@ class FirstFitChoosingStrategy implements ChoosingStrategy {
 	 * @return the function result
 	 */
 	@Override
-	public SelectorChannel apply(List<SelectorChannel> selectorChannels) {
+	public final SelectorChannel apply(List<SelectorChannel> selectorChannels) {
 		for(SelectorChannel socketChannels : selectorChannels) {
 			if(socketChannels.isOpen()) {
 				return socketChannels;

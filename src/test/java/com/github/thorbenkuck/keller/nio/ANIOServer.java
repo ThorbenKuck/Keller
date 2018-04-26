@@ -19,7 +19,6 @@ public class ANIOServer {
 	private static final Map<SocketChannel, Integer> receivedCounter = new HashMap<>();
 	private static final AtomicInteger failed = new AtomicInteger(0);
 	private static final List<Throwable> encountered = new ArrayList<>();
-	private static WorkloadDispenser workloadDispenser;
 
 	private static void addException(Throwable e) {
 		synchronized (encountered) {
@@ -105,18 +104,13 @@ public class ANIOServer {
 				.onObjectReceive(ANIOServer::received)
 				.onDisconnect(ANIOServer::disconnected)
 				.onException(ANIOServer::addException)
-				.workloadPerSelector(100)
+				.selectorChannelStrategy(ChoosingStrategy.lowestWorkloadFirst())
+				.unlimitedWorkloadPerSelector()
 				.bufferSize(1024)
 				.build();
 
-		workloadDispenser = hub.workloadDispenser();
-		workloadDispenser.setChoosingStrategy(ChoosingStrategy.highestWorkloadFirst());
-
 		try {
 			hub.addConnectedListener(socketChannel -> {
-				if(!socketChannel.isOpen()) {
-					return;
-				}
 //				try {
 //					System.out.println("Connected: " + socketChannel.getLocalAddress());
 //				} catch (IOException e) {

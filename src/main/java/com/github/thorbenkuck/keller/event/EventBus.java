@@ -3,20 +3,18 @@ package com.github.thorbenkuck.keller.event;
 public interface EventBus {
 
 	static EventBus create() {
-		return new EventBusImpl();
+		return new NativeEventBus();
 	}
 
-	static EventBus parallel() {
-		return new ParallelEventBus();
-	}
+	void setDispatcherStrategy(final DispatcherStrategy dispatcherStrategy);
 
-	void register(Object object);
+	void setCreationStrategy(final DispatcherCreationStrategy creationStrategy);
 
-	void hook(Object object);
+	void register(final Object object);
 
-	void unregister(Object object);
+	void unregister(final Object object);
 
-	void post(Object object);
+	void post(final Object object);
 
 	void clear();
 

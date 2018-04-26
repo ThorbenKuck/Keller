@@ -4,18 +4,18 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public class NativeDirectoryWatcherHubFactory implements DirectoryWatcherHubFactory {
+public final class NativeDirectoryWatcherHubFactory implements DirectoryWatcherHubFactory {
 
 	final List<Path> pathList = new ArrayList<>();
 
 	@Override
-	public DirectoryWatcherHubFactory add(Path path) {
+	public final DirectoryWatcherHubFactory add(Path path) {
 		pathList.add(path);
 		return this;
 	}
 
 	@Override
-	public DirectoryWatcherHub initialize() throws DirectoryWatcherException {
+	public final DirectoryWatcherHub initialize() throws DirectoryWatcherException {
 		final DirectoryWatcherHub hub = new NativeDirectoryWatcherHub();
 		for(Path path : pathList) {
 			hub.addDirectoryWatcher(path);
@@ -24,7 +24,7 @@ public class NativeDirectoryWatcherHubFactory implements DirectoryWatcherHubFact
 	}
 
 	@Override
-	public DirectoryWatcherHub empty() {
+	public final DirectoryWatcherHub empty() {
 		return new NativeDirectoryWatcherHub();
 	}
 }

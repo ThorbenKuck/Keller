@@ -5,8 +5,7 @@ import java.lang.annotation.*;
 @Documented
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Hook {
+public @interface Listen {
 
 	boolean active() default true;
-
 }

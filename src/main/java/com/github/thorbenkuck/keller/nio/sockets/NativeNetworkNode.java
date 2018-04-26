@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NativeNetworkNode implements NetworkNode {
+final class NativeNetworkNode implements NetworkNode {
 
 	private ExecutorService executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors() - 1);
 	private final Sender sender = new Sender();
@@ -47,29 +47,30 @@ class NativeNetworkNode implements NetworkNode {
 		exceptionConsumer.accept(e);
 	}
 
-	void setExecutorService(final ExecutorService executorService) {
+	final void setExecutorService(final ExecutorService executorService) {
 		this.executorService = executorService;
 	}
 
-	void setBufferSize(final int bufferSize) {
+	final void setBufferSize(final int bufferSize) {
 		this.bufferSize = bufferSize;
 	}
 
-	void setExceptionConsumer(final Consumer<Exception> consumer) {
+	final void setExceptionConsumer(final Consumer<Exception> consumer) {
 		this.exceptionConsumer = consumer;
 	}
 
-	public void op(final int port) throws IOException {
+	@Override
+	public final void open(final int port) throws IOException {
 		open("localhost", port);
 	}
 
 	@Override
-	public void open(final String string, final int port) throws IOException {
+	public final void open(final String string, final int port) throws IOException {
 		open(new InetSocketAddress(string, port));
 	}
 
 	@Override
-	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
+	public final void open(final InetSocketAddress inetSocketAddress) throws IOException {
 		channel = SocketChannel.open(inetSocketAddress);
 		channel.configureBlocking(false);
 		selector = Selector.open();
@@ -80,7 +81,7 @@ class NativeNetworkNode implements NetworkNode {
 	}
 
 	@Override
-	public void send(final Object object) throws IOException {
+	public final void send(final Object object) throws IOException {
 		if(!isOpen()) {
 			return;
 		}
@@ -93,22 +94,22 @@ class NativeNetworkNode implements NetworkNode {
 	}
 
 	@Override
-	public void addReceivedListener(final Consumer<Message> consumer) {
+	public final void addReceivedListener(final Consumer<Message> consumer) {
 		this.receivedListener.add(consumer);
 	}
 
 	@Override
-	public void addDisconnectedListener(final Consumer<SocketChannel> consumer) {
+	public final void addDisconnectedListener(final Consumer<SocketChannel> consumer) {
 		this.disconnectedListener.add(consumer);
 	}
 
 	@Override
-	public void setSerializer(final Function<Object, String> function) {
+	public final void setSerializer(final Function<Object, String> function) {
 		sender.setSerializer(function);
 	}
 
 	@Override
-	public void close() throws IOException {
+	public final void close() throws IOException {
 		executorService.shutdown();
 		worker.stop();
 		selector.wakeup();
@@ -127,12 +128,12 @@ class NativeNetworkNode implements NetworkNode {
 	}
 
 	@Override
-	public void setDeSerializer(final Function<String, Object> deSerializer) {
+	public final void setDeSerializer(final Function<String, Object> deSerializer) {
 		this.deSerializer.setDeserializer(deSerializer);
 	}
 
 	@Override
-	public boolean isOpen() {
+	public final boolean isOpen() {
 		return channel.isOpen();
 	}
 }

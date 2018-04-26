@@ -146,7 +146,7 @@ final class NativeThreeDVector implements ThreeDVector {
 	}
 
 	@Override
-	public String prettyPrint() {
+	public String toReadable() {
 		final StringBuilder stringBuilder = new StringBuilder();
 		final String ls = System.lineSeparator();
 		stringBuilder.append(x).append(ls).append(y).append(ls).append(z).append(ls);

@@ -2,22 +2,22 @@ package com.github.thorbenkuck.keller.event;
 
 public class DeadEventException extends RuntimeException {
 
-	public DeadEventException() {
+	DeadEventException() {
 	}
 
-	public DeadEventException(String message) {
+	DeadEventException(String message) {
 		super(message);
 	}
 
-	public DeadEventException(String message, Throwable cause) {
+	DeadEventException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public DeadEventException(Throwable cause) {
+	DeadEventException(Throwable cause) {
 		super(cause);
 	}
 
-	public DeadEventException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+	DeadEventException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 	}
 }

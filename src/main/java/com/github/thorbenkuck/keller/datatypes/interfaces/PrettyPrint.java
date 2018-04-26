@@ -5,10 +5,10 @@ import java.io.PrintStream;
 public interface PrettyPrint {
 
 	default void prettyPrint(PrintStream writer) {
-		writer.println(prettyPrint());
+		writer.println(toReadable());
 
 	}
 
-	String prettyPrint();
+	String toReadable();
 
 }

@@ -2,7 +2,7 @@ package com.github.thorbenkuck.keller.nio.files;
 
 import java.security.PrivilegedActionException;
 
-public class DirectoryWatcherException extends Exception {
+public final class DirectoryWatcherException extends Exception {
 
 	/**
 	 * Constructs a new exception with {@code null} as its detail message.

@@ -9,10 +9,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 final class NativeFileWriter implements FileWriter {
 
 	private final Value<Path> target = Value.empty();
+	private final Lock writeLock = new ReentrantLock();
 
 	private void set(Path path) {
 		synchronized (target) {
@@ -54,12 +57,12 @@ final class NativeFileWriter implements FileWriter {
 	}
 
 	@Override
-	public void open(String path) throws IOException {
+	public final void open(String path) throws IOException {
 		open(Paths.get(path));
 	}
 
 	@Override
-	public void open(Path path) throws IOException {
+	public final void open(Path path) throws IOException {
 		if (isSet()) {
 			throw new IOException("Already bound to " + get());
 		}
@@ -71,44 +74,54 @@ final class NativeFileWriter implements FileWriter {
 	}
 
 	@Override
-	public void close() {
+	public final void close() {
 		if (isSet()) {
 			clearTarget();
 		}
 	}
 
 	@Override
-	public void set(String string) throws IOException {
+	public final void set(String string) throws IOException {
 		Keller.parameterNotNull(string);
 		doWrite(string, StandardOpenOption.WRITE);
 	}
 
 	@Override
-	public synchronized void write(String string) throws IOException {
+	public final void write(String string) throws IOException {
 		set(string);
 	}
 
 	@Override
-	public void append(String string) throws IOException {
+	public final void append(String string) throws IOException {
 		Keller.parameterNotNull(string);
 		doWrite(string, StandardOpenOption.APPEND);
 	}
 
 	@Override
-	public void newLine() throws IOException {
+	public final void newLine() throws IOException {
 		append(System.lineSeparator());
 	}
 
 	@Override
-	public void clear() throws IOException {
+	public final void clear() throws IOException {
 		Path path = getChecked();
-		try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-			writer.write("");
+		try {
+			writeLock.lock();
+			try (BufferedWriter writer = Files.newBufferedWriter(path)) {
+				writer.write("");
+			}
+		} finally {
+			writeLock.unlock();
 		}
 	}
 
 	private void doWrite(String what, StandardOpenOption openOption) throws IOException {
-		Path path = getChecked();
-		Files.write(path, what.getBytes(), openOption);
+		try {
+			writeLock.lock();
+			Path path = getChecked();
+			Files.write(path, what.getBytes(), openOption);
+		} finally {
+			writeLock.unlock();
+		}
 	}
 }

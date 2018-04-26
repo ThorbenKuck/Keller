@@ -1,6 +1,6 @@
 package com.github.thorbenkuck.keller.nio.files;
 
-class NativeLine implements Line {
+final class NativeLine implements Line {
 
 	private final int lineNumber;
 	private final String content;
@@ -11,22 +11,22 @@ class NativeLine implements Line {
 	}
 
 	@Override
-	public int getLineNumber() {
+	public final int getLineNumber() {
 		return lineNumber;
 	}
 
 	@Override
-	public String getContent() {
+	public final String getContent() {
 		return content;
 	}
 
 	@Override
-	public String toString() {
+	public final String toString() {
 		return getContent();
 	}
 
 	@Override
-	public String prettyPrint() {
+	public final String toReadable() {
 		return "(" + getLineNumber() + "): " + getContent();
 	}
 }

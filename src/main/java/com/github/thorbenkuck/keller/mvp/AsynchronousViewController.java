@@ -12,7 +12,7 @@ import java.util.concurrent.Executors;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-public class AsynchronousViewController implements ViewController {
+public final class AsynchronousViewController implements ViewController {
 
 	private final Map<Class<? extends View>, Factory<View>> factoryMap = new HashMap<>();
 	private final Value<BiConsumer<Presenter, View>> beforeShowConsumer = Value.of((presenter, view) -> {});

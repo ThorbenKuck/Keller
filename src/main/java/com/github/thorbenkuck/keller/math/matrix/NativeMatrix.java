@@ -256,7 +256,7 @@ class NativeMatrix implements Matrix {
 	}
 
 	@Override
-	public String prettyPrint() {
+	public String toReadable() {
 		final StringBuilder stringBuilder = new StringBuilder();
 		for (int i = 0; i < rows; i++) {
 			for (int j = 0; j < columns; j++) {

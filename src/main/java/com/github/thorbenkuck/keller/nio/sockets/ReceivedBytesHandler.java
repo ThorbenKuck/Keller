@@ -7,9 +7,9 @@ import java.util.Queue;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-class ReceivedBytesHandler {
+final class ReceivedBytesHandler {
 
-	void handle(SocketChannel channel, Consumer<SocketChannel> disconnected, Supplier<Integer> bufferSize,
+	final void handle(SocketChannel channel, Consumer<SocketChannel> disconnected, Supplier<Integer> bufferSize,
 	            Deserializer deserializer, Queue<Message> messageQueue, Consumer<Exception> onException) {
 		if(!channel.isConnected()) {
 			disconnected.accept(channel);

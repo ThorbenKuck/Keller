@@ -132,7 +132,7 @@ final class NativeTwoDVector implements TwoDVector {
 	}
 
 	@Override
-	public String prettyPrint() {
+	public String toReadable() {
 		final StringBuilder stringBuilder = new StringBuilder();
 		final String ls = System.lineSeparator();
 		stringBuilder.append(x).append(ls).append(y).append(ls);

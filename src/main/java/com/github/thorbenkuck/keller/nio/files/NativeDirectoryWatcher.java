@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-class NativeDirectoryWatcher implements DirectoryWatcher {
+final class NativeDirectoryWatcher implements DirectoryWatcher {
 
 	private ExecutorService executorService = Executors.newSingleThreadExecutor();
 	private final AtomicReference<PathWatcher> watcher = new AtomicReference<>();
@@ -45,34 +45,34 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 	}
 
 	@Override
-	public synchronized void onNewFile(Consumer<Path> consumer) {
+	public final synchronized void onNewFile(Consumer<Path> consumer) {
 		newFilePipeline.addFirst(consumer);
 	}
 
 	@Override
-	public synchronized void onModifiedFile(Consumer<Path> consumer) {
+	public final synchronized void onModifiedFile(Consumer<Path> consumer) {
 		updatedFilePipeline.addFirst(consumer);
 	}
 
 	@Override
-	public synchronized void onDeletedFile(Consumer<Path> consumer) {
+	public final synchronized void onDeletedFile(Consumer<Path> consumer) {
 		deletedFilePipeline.addFirst(consumer);
 	}
 
 	@Override
-	public void addFileHandler(FileHandler fileHandler) {
+	public final void addFileHandler(FileHandler fileHandler) {
 		onNewFile(fileHandler::newFile);
 		onModifiedFile(fileHandler::updatedFile);
 		onDeletedFile(fileHandler::deletedFile);
 	}
 
 	@Override
-	public void watch(String path) throws DirectoryWatcherException {
+	public final void watch(String path) throws DirectoryWatcherException {
 		watch(Paths.get(path));
 	}
 
 	@Override
-	public synchronized void watch(Path directoryPath) throws DirectoryWatcherException {
+	public final synchronized void watch(Path directoryPath) throws DirectoryWatcherException {
 		if(!Files.exists(directoryPath) || !Files.isDirectory(directoryPath)) {
 			throw new DirectoryWatcherException("Can only watch directorys! Directory expected!");
 		}
@@ -95,7 +95,7 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 	}
 
 	@Override
-	public void stopWatching() {
+	public final void stopWatching() {
 		PathWatcher runnable;
 		synchronized (watcher) {
 			runnable = watcher.get();
@@ -108,12 +108,12 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 	}
 
 	@Override
-	public void close() {
+	public final void close() {
 		stopWatching();
 		executorService.shutdown();
 	}
 
-	private class PathWatcher implements Runnable {
+	private final class PathWatcher implements Runnable {
 
 		private Thread runningIn;
 		private final AtomicBoolean running = new AtomicBoolean(false);
@@ -150,7 +150,7 @@ class NativeDirectoryWatcher implements DirectoryWatcher {
 		 * @see Thread#run()
 		 */
 		@Override
-		public void run() {
+		public final void run() {
 			try(WatchService watchService = FileSystems.getDefault().newWatchService()) {
 				running.set(true);
 				runningIn = Thread.currentThread();

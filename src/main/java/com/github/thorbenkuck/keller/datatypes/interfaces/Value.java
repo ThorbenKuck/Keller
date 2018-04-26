@@ -6,9 +6,13 @@ public interface Value<T> {
 		return new NativeValue<>(t);
 	}
 
+	static <T> Value<T> synchronize(T t) { return new NativeSynchronizedValue<>(t); }
+
 	static <T> Value<T> empty() {
 		return new NativeValue<>(null);
 	}
+
+	static <T> Value<T> emptySynchronized() { return new NativeSynchronizedValue<>(null); }
 
 	T get();
 

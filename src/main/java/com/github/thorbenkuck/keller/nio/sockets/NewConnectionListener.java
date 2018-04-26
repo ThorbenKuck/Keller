@@ -6,7 +6,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-class NewConnectionListener implements Runnable {
+final class NewConnectionListener implements Runnable {
 
 	private final Selector selector;
 	private final ConnectedListener connectedListener;
@@ -31,7 +31,7 @@ class NewConnectionListener implements Runnable {
 	 * @see Thread#run()
 	 */
 	@Override
-	public void run() {
+	public final void run() {
 		running.set(true);
 		try {
 			while (running.get()) {
@@ -67,7 +67,7 @@ class NewConnectionListener implements Runnable {
 		}
 	}
 
-	public void stop() {
+	public final void stop() {
 		running.set(false);
 	}
 }

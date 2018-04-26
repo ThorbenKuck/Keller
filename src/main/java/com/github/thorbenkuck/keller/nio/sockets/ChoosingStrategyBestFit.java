@@ -2,11 +2,11 @@ package com.github.thorbenkuck.keller.nio.sockets;
 
 import java.util.List;
 
-class BestFitChoosingStrategy implements ChoosingStrategy {
+final class ChoosingStrategyBestFit implements ChoosingStrategy {
 
 	private final boolean lowest;
 
-	BestFitChoosingStrategy(boolean lowest) {
+	ChoosingStrategyBestFit(boolean lowest) {
 		this.lowest = lowest;
 	}
 
@@ -17,7 +17,7 @@ class BestFitChoosingStrategy implements ChoosingStrategy {
 	 * @return the function result
 	 */
 	@Override
-	public SelectorChannel apply(List<SelectorChannel> selectorChannels) {
+	public final SelectorChannel apply(List<SelectorChannel> selectorChannels) {
 		if(lowest) {
 			return findLowest(selectorChannels);
 		} else {

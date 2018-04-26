@@ -3,13 +3,13 @@ package com.github.thorbenkuck.keller.event;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-class EventBridgeHook implements EventBridge {
+final class EventBridgeHook implements EventBridge {
 
 	private final Object object;
 	private final Method method;
 	private final Class<?> parameterType;
 
-	EventBridgeHook(Object object, Method method) {
+	EventBridgeHook(final Object object, final Method method) {
 		if(method.getParameterCount() != 1) {
 			throw new IllegalArgumentException();
 		}
@@ -19,7 +19,7 @@ class EventBridgeHook implements EventBridge {
 	}
 
 	@Override
-	public Object trigger(Object event) {
+	public Object trigger(final Object event) {
 		boolean access = method.isAccessible();
 		method.setAccessible(true);
 		Object result = null;
@@ -27,7 +27,7 @@ class EventBridgeHook implements EventBridge {
 			if (parameterType.equals(event.getClass())) {
 				try {
 					result = method.invoke(object, event);
-				} catch (IllegalAccessException | InvocationTargetException e) {
+				} catch (final IllegalAccessException | InvocationTargetException e) {
 					e.printStackTrace();
 				}
 			}
@@ -39,7 +39,12 @@ class EventBridgeHook implements EventBridge {
 	}
 
 	@Override
-	public boolean isApplicable(Object event) {
+	public Object getSource() {
+		return object;
+	}
+
+	@Override
+	public boolean isApplicable(final Object event) {
 		return event != null && parameterType.equals(event.getClass());
 	}
 
@@ -49,11 +54,11 @@ class EventBridgeHook implements EventBridge {
 	}
 
 	@Override
-	public boolean equals(Object o) {
+	public boolean equals(final Object o) {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 
-		EventBridgeHook listening = (EventBridgeHook) o;
+		final EventBridgeHook listening = (EventBridgeHook) o;
 
 		return object.equals(listening.object) && method.equals(listening.method) && parameterType.equals(listening.parameterType);
 	}

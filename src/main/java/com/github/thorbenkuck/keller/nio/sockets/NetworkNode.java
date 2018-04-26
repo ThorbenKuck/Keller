@@ -8,6 +8,8 @@ import java.util.function.Function;
 
 public interface NetworkNode {
 
+	void open(int port) throws IOException;
+
 	void open(String string, int port) throws IOException;
 
 	void open(InetSocketAddress inetSocketAddress) throws IOException;

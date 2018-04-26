@@ -1,7 +1,5 @@
 package com.github.thorbenkuck.keller.nio.sockets;
 
-import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
-
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -11,12 +9,11 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class ReceiveObjectListener implements Runnable {
+public final class ReceiveObjectListener implements Runnable {
 
 	private final Selector selector;
 	private final Supplier<ExecutorService> executorService;
@@ -28,7 +25,7 @@ public class ReceiveObjectListener implements Runnable {
 	private final AtomicBoolean running = new AtomicBoolean(false);
 	private final ReceivedBytesHandler receivedBytesHandler = new ReceivedBytesHandler();
 
-	public ReceiveObjectListener(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> bufferSize, Supplier<ExecutorService> executorService, Consumer<Exception> onException) {
+	ReceiveObjectListener(Selector selector, DisconnectedListener disconnectedListener, ReceivedListener receivedListener, Deserializer deserializer, Supplier<Integer> bufferSize, Supplier<ExecutorService> executorService, Consumer<Exception> onException) {
 		this.selector = selector;
 		this.executorService = executorService;
 		this.bufferSize = bufferSize;
@@ -54,14 +51,17 @@ public class ReceiveObjectListener implements Runnable {
 	 * @see Thread#run()
 	 */
 	@Override
-	public void run() {
+	public final void run() {
 		System.out.println("Receive Listener connected");
 		running.set(true);
 		try {
 			while (running.get()) {
 				try {
 					selector.select();
-					if(selector.isOpen()) {
+					if (!running.get()) {
+						break;
+					}
+					if (selector.isOpen()) {
 						handle(selector.selectedKeys());
 					} else {
 						stop();
@@ -105,19 +105,19 @@ public class ReceiveObjectListener implements Runnable {
 	}
 
 	private void trigger(final Queue<Message> objects) {
-		if(objects.isEmpty()) {
+		if (objects.isEmpty()) {
 			return;
 		}
 		final Queue<Message> toWorkOn = new LinkedList<>(objects);
 		executorService.get().submit(() -> {
-			while(toWorkOn.peek() != null) {
+			while (toWorkOn.peek() != null) {
 				Message message = toWorkOn.poll();
 				receivedListener.handle(message);
 			}
 		});
 	}
 
-	public void stop() {
+	public final void stop() {
 		running.set(false);
 	}
 }

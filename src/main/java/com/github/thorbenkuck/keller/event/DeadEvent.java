@@ -4,7 +4,7 @@ public final class DeadEvent {
 
 	private final Object event;
 
-	DeadEvent(Object event) {
+	DeadEvent(final Object event) {
 		this.event = event;
 	}
 

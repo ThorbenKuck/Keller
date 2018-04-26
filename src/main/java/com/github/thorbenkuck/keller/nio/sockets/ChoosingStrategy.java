@@ -6,15 +6,15 @@ import java.util.function.Function;
 public interface ChoosingStrategy extends Function<List<SelectorChannel>, SelectorChannel> {
 
 	static ChoosingStrategy firstFit() {
-		return new FirstFitChoosingStrategy();
+		return new ChoosingStrategyFirstFit();
 	}
 
 	static ChoosingStrategy lowestWorkloadFirst() {
-		return new BestFitChoosingStrategy(true);
+		return new ChoosingStrategyBestFit(true);
 	}
 
 	static ChoosingStrategy highestWorkloadFirst() {
-		return new BestFitChoosingStrategy(false);
+		return new ChoosingStrategyBestFit(false);
 	}
 
 }

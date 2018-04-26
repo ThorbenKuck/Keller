@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NativeNetworkHub implements NetworkHub {
+final class NativeNetworkHub implements NetworkHub {
 
 	private final ConnectedListener connectedListener = new ConnectedListener();
 	private final ReceivedListener receivedListener = new ReceivedListener();
@@ -36,37 +36,37 @@ class NativeNetworkHub implements NetworkHub {
 		onException.accept(e);
 	}
 
-	void setOnException(final Consumer<Exception> exceptionConsumer){
+	final void setOnException(final Consumer<Exception> exceptionConsumer){
 		this.onException = exceptionConsumer;
 	}
 
-	void setExecutorService(final ExecutorService executorService) {
+	final void setExecutorService(final ExecutorService executorService) {
 		this.executorService = executorService;
 	}
 
-	void setBufferSize(final int bufferSize) {
+	final void setBufferSize(final int bufferSize) {
 		if(bufferSize < 1) {
 			throw new IllegalArgumentException("Buffer size must be 1 or greater");
 		}
 		this.bufferSize = bufferSize;
 	}
 
-	void setMaxWorkloadPerSelector(final int workload) {
+	final void setMaxWorkloadPerSelector(final int workload) {
 		workloadDispenser.setMaxWorkload(workload);
 	}
 
 	@Override
-	public void open(final int port) throws IOException {
+	public final void open(final int port) throws IOException {
 		open("localhost", port);
 	}
 
 	@Override
-	public void open(final String string, final int port) throws IOException {
+	public final void open(final String string, final int port) throws IOException {
 		open(new InetSocketAddress(string, port));
 	}
 
 	@Override
-	public void open(final InetSocketAddress inetSocketAddress) throws IOException {
+	public final void open(final InetSocketAddress inetSocketAddress) throws IOException {
 		workloadDispenser.setBufferSize(this::getBufferSize);
 		workloadDispenser.setExecutorServiceSupplier(this::getExecutorService);
 		channel = ServerSocketChannel.open();
@@ -94,12 +94,12 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public ServerSocketChannel getChannel() {
+	public final ServerSocketChannel getChannel() {
 		return channel;
 	}
 
 	@Override
-	public void addReceivedListener(final Consumer<Message> consumer) {
+	public final void addReceivedListener(final Consumer<Message> consumer) {
 		if(!isOpen()) {
 			return;
 		}
@@ -107,7 +107,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public void addConnectedListener(final Consumer<SocketChannel> consumer) {
+	public final void addConnectedListener(final Consumer<SocketChannel> consumer) {
 		if(!isOpen()) {
 			return;
 		}
@@ -115,7 +115,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public void addDisconnectedListener(final Consumer<SocketChannel> channelConsumer) {
+	public final void addDisconnectedListener(final Consumer<SocketChannel> channelConsumer) {
 		if(!isOpen()) {
 			return;
 		}
@@ -123,7 +123,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public void setDeserializer(final Function<String, Object> deserializer) {
+	public final void setDeserializer(final Function<String, Object> deserializer) {
 		if(!isOpen()) {
 			return;
 		}
@@ -131,7 +131,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public void setSerializer(final Function<Object, String> function) {
+	public final void setSerializer(final Function<Object, String> function) {
 		if(!isOpen()) {
 			return;
 		}
@@ -139,7 +139,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public void send(final Object object, final SocketChannel socketChannel) throws IOException {
+	public final void send(final Object object, final SocketChannel socketChannel) throws IOException {
 		if(!isOpen()) {
 			return;
 		}
@@ -152,7 +152,7 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public synchronized void close() throws IOException {
+	public final synchronized void close() throws IOException {
 		if(!isOpen()) {
 			return;
 		}
@@ -176,12 +176,12 @@ class NativeNetworkHub implements NetworkHub {
 	}
 
 	@Override
-	public WorkloadDispenser workloadDispenser() {
+	public final WorkloadDispenser workloadDispenser() {
 		return workloadDispenser;
 	}
 
 	@Override
-	public boolean isOpen() {
+	public final boolean isOpen() {
 		return channel == null || channel.isOpen();
 	}
 }

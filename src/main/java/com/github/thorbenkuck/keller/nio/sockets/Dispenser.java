@@ -29,7 +29,7 @@ final class Dispenser implements WorkloadDispenser {
 	private final AtomicBoolean active = new AtomicBoolean(false);
 	private final Consumer<Exception> exceptionConsumer;
 	private final Sender sender;
-	private final Value<ChoosingStrategy> choosingStrategy = Value.of(new FirstFitChoosingStrategy());
+	private final Value<ChoosingStrategy> choosingStrategy = Value.of(new ChoosingStrategyFirstFit());
 	private final Value<Supplier<Integer>> bufferSize = Value.empty();
 	private final Value<Supplier<ExecutorService>> executorServiceSupplier = Value.empty();
 	private final Value<Integer> maxWorkload = Value.empty();
@@ -663,6 +663,9 @@ final class Dispenser implements WorkloadDispenser {
 		@Override
 		public ReadOnlySelectorChannelInformation toInformation(int maxWorkload) {
 			int socketChannels = getWorkload();
+			if(maxWorkload == -1) {
+				return new NativeReadOnlyMaxWorkloadSelectorChannelInformation(socketChannels);
+			}
 			double percentage = (double) socketChannels / (double) maxWorkload;
 			return new NativeReadOnlySelectorChannelInformation(socketChannels, percentage);
 		}
@@ -696,6 +699,35 @@ final class Dispenser implements WorkloadDispenser {
 		@Override
 		public String toString() {
 			return "SelectorChannelInformation{empty=" + isEmpty() + ", " + amountOfSocketChannels + ": " + (workload * 100) + "%}";
+		}
+	}
+
+	private final class NativeReadOnlyMaxWorkloadSelectorChannelInformation implements ReadOnlySelectorChannelInformation {
+
+		private final int amountOfSocketChannels;
+
+		private NativeReadOnlyMaxWorkloadSelectorChannelInformation(final int amountOfSocketChannels) {
+			this.amountOfSocketChannels = amountOfSocketChannels;
+		}
+
+		@Override
+		public int getStoredSocketChannels() {
+			return amountOfSocketChannels;
+		}
+
+		@Override
+		public double workloadPercentage() {
+			return 0.0;
+		}
+
+		@Override
+		public boolean isEmpty() {
+			return amountOfSocketChannels == 0;
+		}
+
+		@Override
+		public String toString() {
+			return "SelectorChannelInformation{empty=" + isEmpty() + ", " + amountOfSocketChannels + "}";
 		}
 	}
 }

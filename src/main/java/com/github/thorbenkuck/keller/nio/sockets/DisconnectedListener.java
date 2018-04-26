@@ -5,11 +5,11 @@ import com.github.thorbenkuck.keller.pipe.Pipeline;
 import java.nio.channels.SocketChannel;
 import java.util.function.Consumer;
 
-class DisconnectedListener {
+final class DisconnectedListener {
 
 	private final Pipeline<SocketChannel> messagePipeline = Pipeline.unifiedCreation();
 
-	public void handle(SocketChannel channel) {
+	public final void handle(SocketChannel channel) {
 		try {
 			messagePipeline.apply(channel);
 		} catch (Throwable t) {
@@ -17,11 +17,11 @@ class DisconnectedListener {
 		}
 	}
 
-	public void add(Consumer<SocketChannel> consumer) {
+	public final void add(Consumer<SocketChannel> consumer) {
 		messagePipeline.addLast(consumer);
 	}
 
-	public void addFirst(Consumer<SocketChannel> consumer) {
+	public final void addFirst(Consumer<SocketChannel> consumer) {
 		messagePipeline.addFirst(consumer);
 	}
 }

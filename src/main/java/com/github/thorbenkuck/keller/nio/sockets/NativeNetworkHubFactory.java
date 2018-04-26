@@ -7,73 +7,79 @@ import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-class NativeNetworkHubFactory implements NetworkHubFactory {
+final class NativeNetworkHubFactory implements NetworkHubFactory {
 
 	private NativeNetworkHub networkListener = new NativeNetworkHub();
 
 	@Override
-	public NetworkHubFactory onObjectReceive(Consumer<Message> consumer) {
+	public final NetworkHubFactory onObjectReceive(Consumer<Message> consumer) {
 		Keller.parameterNotNull(consumer);
 		networkListener.addReceivedListener(consumer);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory onConnect(Consumer<SocketChannel> consumer) {
+	public final NetworkHubFactory onConnect(Consumer<SocketChannel> consumer) {
 		Keller.parameterNotNull(consumer);
 		networkListener.addConnectedListener(consumer);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory onDisconnect(Consumer<SocketChannel> consumer) {
+	public final NetworkHubFactory onDisconnect(Consumer<SocketChannel> consumer) {
 		Keller.parameterNotNull(consumer);
 		networkListener.addDisconnectedListener(consumer);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory executorService(ExecutorService executorService) {
+	public final NetworkHubFactory executorService(ExecutorService executorService) {
 		Keller.parameterNotNull(executorService);
 		networkListener.setExecutorService(executorService);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory onException(Consumer<Exception> ex) {
+	public final NetworkHubFactory onException(Consumer<Exception> ex) {
 		Keller.parameterNotNull(ex);
 		networkListener.setOnException(ex);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory bufferSize(int bufferSize) {
+	public final NetworkHubFactory bufferSize(int bufferSize) {
 		networkListener.setBufferSize(bufferSize);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory workloadPerSelector(int workload) {
+	public final NetworkHubFactory workloadPerSelector(int workload) {
 		networkListener.setMaxWorkloadPerSelector(workload);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory serializer(Function<Object, String> function) {
+	public final NetworkHubFactory selectorChannelStrategy(ChoosingStrategy strategy) {
+		networkListener.workloadDispenser().setChoosingStrategy(strategy);
+		return this;
+	}
+
+	@Override
+	public final NetworkHubFactory serializer(Function<Object, String> function) {
 		Keller.parameterNotNull(function);
 		networkListener.setSerializer(function);
 		return this;
 	}
 
 	@Override
-	public NetworkHubFactory deserializer(Function<String, Object> function) {
+	public final NetworkHubFactory deserializer(Function<String, Object> function) {
 		Keller.parameterNotNull(function);
 		networkListener.setDeserializer(function);
 		return this;
 	}
 
 	@Override
-	public NetworkHub build() {
+	public final NetworkHub build() {
 		return networkListener;
 	}
 }
