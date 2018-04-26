@@ -27,4 +27,6 @@ public interface NetworkNode {
 	void setDeSerializer(Function<String, Object> deSerializer);
 
 	boolean isOpen();
+
+	SocketChannel getChannel();
 }

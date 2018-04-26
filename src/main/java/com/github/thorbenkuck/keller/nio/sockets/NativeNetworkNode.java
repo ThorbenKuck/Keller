@@ -136,4 +136,9 @@ final class NativeNetworkNode implements NetworkNode {
 	public final boolean isOpen() {
 		return channel.isOpen();
 	}
+
+	@Override
+	public final SocketChannel getChannel() {
+		return channel;
+	}
 }
