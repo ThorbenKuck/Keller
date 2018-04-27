@@ -44,7 +44,7 @@ public class ANIOClient {
 				.build();
 
 		try {
-			node.open("localhost", 4444);
+			node.open("localhost", 4445);
 		} catch (IOException e) {
 			System.out.println(myCount + " could not connect!");
 			decreaseCount();

@@ -52,7 +52,6 @@ public final class ReceiveObjectListener implements Runnable {
 	 */
 	@Override
 	public final void run() {
-		System.out.println("Receive Listener connected");
 		running.set(true);
 		try {
 			while (running.get()) {
@@ -74,8 +73,7 @@ public final class ReceiveObjectListener implements Runnable {
 		} catch (Exception e) {
 			handle(e);
 		}
-		// TODO change to callback? Or don't care? IDK...
-		System.out.println("Receive Listener disconnected");
+		// TODO insert callback? Or don't care? IDK...
 	}
 
 	private void handle(Set<SelectionKey> selectionKeys) {

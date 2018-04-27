@@ -46,9 +46,9 @@ final class ReceivedBytesHandler {
 				disconnected.accept(channel);
 				return;
 			} else {
-				buffer.flip();
 				resultBuilder.append(new String(buffer.array()).trim());
 				buffer.clear();
+				buffer.flip();
 			}
 			read = channel.read(buffer);
 		}

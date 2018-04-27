@@ -126,8 +126,8 @@ public class ANIOServer {
 				}
 			});
 
-			hub.open(4444);
-			System.out.println("Server connected to port " + 4444);
+			hub.open(4445);
+			System.out.println("Server connected to port " + 4445);
 
 //			try {
 //				Thread.sleep(10000);
