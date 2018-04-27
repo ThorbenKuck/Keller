@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.thorbenkuck</groupId>
     <artifactId>Keller</artifactId>
-    <version>1.4.5.1-SNAPSHOT</version>
+    <version>1.4.5.1</version>
     <packaging>jar</packaging>
     <name>Keller</name>
     <description>Keller is a universal base-package</description>
@@ -17,7 +17,7 @@
         <connection>scm:git:git@github.com:ThorbenKuck/Keller.git</connection>
         <url>scm:git:git@github.com:ThorbenKuck/Keller.git</url>
         <developerConnection>scm:git:git@github.com:ThorbenKuck/Keller.git</developerConnection>
-        <tag>Keller-1.4</tag>
+        <tag>Keller-1.4.5.1</tag>
     </scm>
 
     <developers>
