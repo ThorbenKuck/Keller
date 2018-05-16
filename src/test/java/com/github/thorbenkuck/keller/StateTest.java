@@ -1,11 +1,11 @@
 package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.di.SingleInstanceOnly;
-import com.github.thorbenkuck.keller.state.EndState;
-import com.github.thorbenkuck.keller.state.NextState;
-import com.github.thorbenkuck.keller.state.StateAction;
-import com.github.thorbenkuck.keller.state.StateMachine;
+import com.github.thorbenkuck.keller.state.*;
+import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 import org.junit.Test;
+
+import java.util.concurrent.TimeUnit;
 
 public class StateTest {
 
@@ -33,9 +33,15 @@ public class StateTest {
 	}
 
 	private class FirstState {
+
 		@StateAction
 		public void action(SecondDependency secondDependency) {
 			System.out.println("In first state ..");
+		}
+
+		@StateTransitionFactory
+		public StateTransition construct() {
+			return StateTransition.openAsTimer(2, TimeUnit.SECONDS);
 		}
 
 		@NextState

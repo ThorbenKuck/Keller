@@ -21,4 +21,6 @@ public interface StateMachine {
 	void addDependency(Object object);
 
 	void setDependencyManager(DependencyManager dependencyManager);
+
+	void continueToNextState();
 }

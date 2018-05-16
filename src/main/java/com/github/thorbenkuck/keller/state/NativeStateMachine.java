@@ -2,21 +2,22 @@ package com.github.thorbenkuck.keller.state;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.di.DependencyManager;
-import com.github.thorbenkuck.keller.utility.Keller;
+import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 
-import java.lang.reflect.InvocationTargetException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 final class NativeStateMachine implements StateMachine {
 
-	private final Value<Object> currentStateValue = Value.emptySynchronized();
+	private final Value<InternalState> currentStateValue = Value.emptySynchronized();
+	private final Value<StateTransition> currentStateTransitionValue = Value.emptySynchronized();
 	private final Value<DependencyManager> dependencyManagerValue = Value.synchronize(DependencyManager.create());
 
 	@Override
 	public void start(Object object) {
-		currentStateValue.set(object);
+		currentStateValue.set(constructInternalState(object));
 		while(!currentStateValue.isEmpty()) {
-			run();
+			handleCurrentState();
 		}
 	}
 
@@ -30,65 +31,85 @@ final class NativeStateMachine implements StateMachine {
 		dependencyManagerValue.set(dependencyManager);
 	}
 
-	private void run() {
-		Object current = currentStateValue.get();
-		dispatchAction(current);
-		dispatchFollowup(current);
+	@Override
+	public void continueToNextState() {
+		currentStateTransitionValue.get().finish();
 	}
 
-	private void dispatchFollowup(Object current) {
-		Method actionMethod = getFollowupStateMethod(current.getClass());
-		if(actionMethod == null || Keller.isPrimitiveOrWrapperType(actionMethod.getReturnType())) {
-			tryApplyNewState(null);
-			return;
-		}
-
-		boolean accessible = actionMethod.isAccessible();
-		actionMethod.setAccessible(true);
-
-		try {
-			tryApplyNewState(actionMethod.invoke(current, constructParameters(actionMethod)));
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException(e);
-		} finally {
-			actionMethod.setAccessible(accessible);
-		}
-	}
-
-	private void dispatchAction(Object current) {
-		Method actionMethod = getActionMethod(current.getClass());
+	private InternalState constructInternalState(Object object) {
+		Method actionMethod = getActionMethod(object.getClass());
 		if(actionMethod == null) {
 			throw new IllegalStateException("Could not locate Method annotated with StateAction");
 		}
 
-		boolean accessible = actionMethod.isAccessible();
-		actionMethod.setAccessible(true);
+		Method nextStateMethod = getFollowupStateMethod(object.getClass());
+		Method stateTransitionMethod = getStateTransitionFactory(object.getClass());
+		InternalState state = new InternalState(actionMethod, stateTransitionMethod, nextStateMethod, object);
 
-		try {
-			actionMethod.invoke(current, constructParameters(actionMethod));
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException(e);
-		} finally {
-			actionMethod.setAccessible(accessible);
+		state.check();
+		return state;
+	}
+
+	private void handleCurrentState() {
+		InternalState current = currentStateValue.get();
+		dispatchStateTransition(current);
+		dispatchAction(current);
+		dispatchNextState(current);
+	}
+
+	private void dispatchStateTransition(InternalState current) {
+		StateTransition stateTransition;
+
+		if (!current.willCreateStateTransition() || !current.stateTransitionRequiresParameters()) {
+			stateTransition = current.getStateTransition();
+		} else {
+			Method stateTransitionMethod = current.getStateTransitionMethod();
+			Object[] params = constructParameters(stateTransitionMethod);
+			stateTransition = current.getStateTransition(params);
 		}
+
+		tryApplyNewStateTransition(stateTransition);
+	}
+
+	private void dispatchNextState(InternalState current) {
+		StateTransition stateTransition = currentStateTransitionValue.get();
+		try {
+			stateTransition.transit();
+		} catch (InterruptedException e) {
+			throw new IllegalStateException(e);
+		}
+
+		Method nextStateMethod = current.getNextStateMethod();
+		tryApplyNewState(current.getNextState(constructParameters(nextStateMethod)));
+	}
+
+	private void dispatchAction(InternalState internalState) {
+		StateTransition stateTransition = currentStateTransitionValue.get();
+		stateTransition.initialize();
+
+		Method actionMethod = internalState.getActionMethod();
+		internalState.action(constructParameters(actionMethod));
+	}
+
+	private <T extends Annotation> Method findMethodWithAnnotation(Class<?> clazz, Class<? extends T> annotation) {
+		for(Method method : clazz.getMethods()) {
+			if (method.isAnnotationPresent(annotation)) {
+				return method;
+			}
+		}
+		return null;
 	}
 
 	private Method getActionMethod(Class<?> clazz) {
-		for(Method method : clazz.getMethods()) {
-			if(method.isAnnotationPresent(StateAction.class)) {
-				return method;
-			}
-		}
-		return null;
+		return findMethodWithAnnotation(clazz, StateAction.class);
 	}
 
 	private Method getFollowupStateMethod(Class<?> clazz) {
-		for(Method method : clazz.getMethods()) {
-			if(method.isAnnotationPresent(NextState.class)) {
-				return method;
-			}
-		}
-		return null;
+		return findMethodWithAnnotation(clazz, NextState.class);
+	}
+
+	private Method getStateTransitionFactory(Class<?> clazz) {
+		return findMethodWithAnnotation(clazz, StateTransitionFactory.class);
 	}
 
 	private Object[] constructParameters(Method method) {
@@ -108,7 +129,11 @@ final class NativeStateMachine implements StateMachine {
 		if(object == null) {
 			currentStateValue.clear();
 		} else {
-			currentStateValue.set(object);
+			currentStateValue.set(constructInternalState(object));
 		}
+	}
+
+	private void tryApplyNewStateTransition(StateTransition nextStateTransition) {
+		currentStateTransitionValue.set(nextStateTransition);
 	}
 }
