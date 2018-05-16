@@ -40,4 +40,8 @@ public interface QueuedAction {
 		action.doAction();
 		action.doAfter();
 	}
+
+	static void call(Value<QueuedAction> actionValue) {
+		call(actionValue.get());
+	}
 }

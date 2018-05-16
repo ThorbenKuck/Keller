@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.sync;
 
+import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
+
 public final class EmptySynchronize implements Synchronize {
 
 	/**
@@ -7,6 +9,15 @@ public final class EmptySynchronize implements Synchronize {
 	 */
 	@Override
 	public final void error() {
+	}
+
+	/**
+	 * This Method-call is ignored
+	 *
+	 * @param queuedAction ignored
+	 */
+	@Override
+	public void setOnError(QueuedAction queuedAction) {
 	}
 
 	/**

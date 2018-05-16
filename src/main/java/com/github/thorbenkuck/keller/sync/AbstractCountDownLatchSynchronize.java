@@ -1,6 +1,7 @@
 package com.github.thorbenkuck.keller.sync;
 
 import com.github.thorbenkuck.keller.annotations.Asynchronous;
+import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
 
 import java.util.concurrent.CountDownLatch;
 

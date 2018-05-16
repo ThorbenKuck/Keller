@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.sync;
 
+import com.github.thorbenkuck.keller.datatypes.interfaces.QueuedAction;
+
 public interface Synchronize extends Awaiting {
 
 
@@ -10,11 +12,11 @@ public interface Synchronize extends Awaiting {
 	static Synchronize createDefault() { return ofSemaphore(); }
 
 	static Synchronize ofSemaphore() {
-		return new DefaultSemaphoreSynchronize();
+		return new NativeSemaphoreSynchronize();
 	}
 
 	static Synchronize ofCountDownLatch() {
-		return new DefaultCountDownLatchSynchronize();
+		return new NativeCountDownLatchSynchronize();
 	}
 
 	static boolean isEmpty(Synchronize synchronize) {
@@ -26,6 +28,8 @@ public interface Synchronize extends Awaiting {
 	}
 
 	void error();
+
+	void setOnError(QueuedAction queuedAction);
 
 	void goOn();
 

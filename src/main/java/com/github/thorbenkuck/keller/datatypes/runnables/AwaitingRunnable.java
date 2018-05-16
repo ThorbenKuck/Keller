@@ -1,5 +1,8 @@
 package com.github.thorbenkuck.keller.datatypes.runnables;
 
+import com.github.thorbenkuck.keller.sync.Awaiting;
+import com.github.thorbenkuck.keller.sync.Synchronize;
+
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -20,13 +23,12 @@ import java.util.concurrent.CountDownLatch;
  */
 public abstract class AwaitingRunnable implements Runnable {
 
-	private CountDownLatch countDownLatch;
+	private final Synchronize synchronize = Synchronize.createDefault();
 
 	/**
 	 * Der Default-Konstruktor initialisiert den CountDownLatch mit einer erwarteten anzahl an Aufrufen von 1
 	 */
 	protected AwaitingRunnable () {
-		this(1);
 	}
 
 	protected abstract void execute();
@@ -38,28 +40,14 @@ public abstract class AwaitingRunnable implements Runnable {
 	}
 
 	/**
-	 * Dieser Konstruktor erwartet einen Integer wert, repräsentativ dafür, wie häufig die finish Methode aufgerufen werden muss,
-	 * damit der Runnable als beendet gilt.
+	 * The Synchronization mechanism for awaiting the finish of this Runnable.
 	 *
-	 * ACHTUNG! Dieser Konstruktor ist ggf. fehler-Anfällig! Wenn dieser Konstruktor genutzt wird, verändert man die Mechanik des AwaitingRunnable!
-	 * Wird zum beispiel eine 1 übergeben (default), so wird erwartet, dass genau 1 mal finish aufgerufen wird.
-	 * Wird hingegen eine 2 übergeben, so muss finish 2 mal aufgerufen werden, bis alle wartenden Prozeduren released werden!
-	 * summa summarum: Wird n übergeben muss n mal finish aufgerufen werden, ansonsten warten die anderen Prozeduren endlos!
-	 *
-	 * @param counts die Anzahl, wie häufig finish betätigt wird
+	 * @return die Awaiting instance die gesetzt ist
+	 * @see Awaiting
+	 * @see Synchronize
 	 */
-	private AwaitingRunnable (int counts) {
-		countDownLatch = new CountDownLatch(counts);
-	}
-
-	/**
-	 * Der Hanger ist eine Klasse, die einen CountDownLatch aus einem Thread isoliert und ihn,
-	 * auf die Methode await() reduziert, zur Verfügung stellt
-	 *
-	 * @return einen Neuen Hanger für jeden Methoden aufruf
-	 */
-	public Hanger getHanger() {
-		return new Hanger(this.countDownLatch);
+	public Awaiting synchronization() {
+		return synchronize;
 	}
 
 	/**
@@ -67,9 +55,8 @@ public abstract class AwaitingRunnable implements Runnable {
 	 * Sie signalisiert das Ende der, in einem anderen Thread ausgeführten Prozedur.
 	 *
 	 * WICHTIG! Wird diese Klasse NICHT aufgerufen, so warten andere Prozeduren ewig!
-	 * Der interne CountDownLatch existiert nämlich so lange weiter, wie es auch nur einen Hanger gibt, der wartet!
 	 */
 	protected void finish() {
-		countDownLatch.countDown();
+		synchronize.goOn();
 	}
 }

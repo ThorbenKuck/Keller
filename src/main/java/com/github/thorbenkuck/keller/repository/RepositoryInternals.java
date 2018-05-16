@@ -7,12 +7,12 @@ import java.util.Queue;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
-class RepositoryInternals {
+final class RepositoryInternals {
 
 	private final List<Object> objectList = new ArrayList<>();
 	private CountDownLatch countDownLatch = new CountDownLatch(0);
 
-	public boolean clear() {
+	public final boolean clear() {
 		try {
 			synchronize();
 		} catch (InterruptedException e) {
@@ -22,75 +22,75 @@ class RepositoryInternals {
 		return isEmpty();
 	}
 
-	public boolean isEmpty() {
+	public final boolean isEmpty() {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		return objectList.isEmpty();
 	}
 
-	public void lock() {
+	public final void lock() {
 		try {
 			countDownLatch.await();
 
 			synchronized (objectList) {
 				countDownLatch = new CountDownLatch(1);
 			}
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 
-	public void unlock() {
+	public final void unlock() {
 		countDownLatch.countDown();
 	}
 
-	public void synchronize() throws InterruptedException {
+	public final void synchronize() throws InterruptedException {
 		countDownLatch.await();
 	}
 
-	public boolean contains(final Object o) {
+	public final boolean contains(final Object o) {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		return objectList.contains(o);
 	}
 
-	public void add(final Object o) {
+	public final void add(final Object o) {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		objectList.add(o);
 	}
 
-	public List<Object> copyInternalsAsList() {
+	public final List<Object> copyInternalsAsList() {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		return new ArrayList<>(objectList);
 	}
 
-	public Queue<Object> copyInternalsAsQueue() {
+	public final Queue<Object> copyInternalsAsQueue() {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		return new LinkedList<>(objectList);
 	}
 
-	public Stream<Object> stream() {
+	public final Stream<Object> stream() {
 		try {
 			synchronize();
-		} catch (InterruptedException e) {
+		} catch (final InterruptedException e) {
 			e.printStackTrace();
 		}
 		return objectList.stream();

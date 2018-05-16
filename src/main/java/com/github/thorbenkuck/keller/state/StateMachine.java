@@ -1,107 +1,24 @@
 package com.github.thorbenkuck.keller.state;
 
-import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+import com.github.thorbenkuck.keller.di.DependencyManager;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+/**
+ * The StateMachine allows for a sequential execution of different States.
+ *
+ * It may be used as a Command-pattern (if all States only have one following State), or as a correct State-pattern.
+ *
+ * The sequence of States is hereby defined by the states itself. Any State defines the following State. Thereby it is
+ * mandatory, that the State-Sequence is correctly defined.
+ */
+public interface StateMachine {
 
-public class StateMachine {
-
-	private final Value<Object> currentState = Value.emptySynchronized();
-	private final Map<Class<?>, Object> dependencies = new HashMap<>();
-
-	public void start(Object object) {
-		currentState.set(object);
-		while(!currentState.isEmpty()) {
-			run();
-		}
+	static StateMachine create() {
+		return new NativeStateMachine();
 	}
 
-	public void addDependency(Object object) {
-		dependencies.put(object.getClass(), object);
-	}
+	void start(Object object);
 
-	private void run() {
-		Object current = currentState.get();
-		dispatchAction(current);
-		dispatchFollowup(current);
-	}
+	void addDependency(Object object);
 
-	private void dispatchFollowup(Object current) {
-		Method actionMethod = getFollowupStateMethod(current.getClass());
-		if(actionMethod == null) {
-			tryApplyNewState(null);
-			return;
-		}
-
-		boolean accessible = actionMethod.isAccessible();
-		actionMethod.setAccessible(true);
-
-		try {
-			tryApplyNewState(actionMethod.invoke(current, constructParameters(actionMethod)));
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException(e);
-		} finally {
-			actionMethod.setAccessible(accessible);
-		}
-	}
-
-	private void dispatchAction(Object current) {
-		Method actionMethod = getActionMethod(current.getClass());
-		if(actionMethod == null) {
-			throw new IllegalStateException("Could not locate Method annotated with StateAction");
-		}
-
-		boolean accessible = actionMethod.isAccessible();
-		actionMethod.setAccessible(true);
-
-		try {
-			actionMethod.invoke(current, constructParameters(actionMethod));
-		} catch (IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException(e);
-		} finally {
-			actionMethod.setAccessible(accessible);
-		}
-	}
-
-	private Method getActionMethod(Class<?> clazz) {
-		for(Method method : clazz.getMethods()) {
-			if(method.isAnnotationPresent(StateAction.class)) {
-				return method;
-			}
-		}
-		return null;
-	}
-
-	private Method getFollowupStateMethod(Class<?> clazz) {
-		for(Method method : clazz.getMethods()) {
-			if(method.isAnnotationPresent(StateFollowup.class)) {
-				return method;
-			}
-		}
-		return null;
-	}
-
-	private Object[] constructParameters(Method method) {
-		final Object[] parameters = new Object[method.getParameterCount()];
-		final Class<?>[] parameterTypes = method.getParameterTypes();
-
-		for(int i = 0 ; i < method.getParameterCount() ; i++) {
-			Class<?> currentType = parameterTypes[i];
-			Object object = dependencies.get(currentType);
-			parameters[i] = object;
-		}
-
-		return parameters;
-	}
-
-	private void tryApplyNewState(Object object) {
-		if(object == null) {
-			currentState.clear();
-		} else {
-			currentState.set(object);
-		}
-	}
+	void setDependencyManager(DependencyManager dependencyManager);
 }

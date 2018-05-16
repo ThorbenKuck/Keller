@@ -12,8 +12,9 @@ public class EventBusTest {
 		EventBus eventBus = EventBus.create();
 		DispatcherStrategy.parallel(eventBus);
 		TestObject testObject = new TestObject();
+		TestObject2 testObject2 = new TestObject2();
 		eventBus.register(testObject);
-		eventBus.register(new TestObject2());
+		eventBus.register(testObject2);
 		eventBus.register(new DeadEventHandler());
 		eventBus.register(new SecondTestObject());
 
@@ -21,6 +22,7 @@ public class EventBusTest {
 		eventBus.post(new TestEvent());
 		Thread.sleep(100);
 		eventBus.unregister(testObject);
+		eventBus.unregister(testObject2);
 		eventBus.post(new TestEvent());
 		Thread.sleep(100);
 	}
@@ -43,7 +45,7 @@ public class EventBusTest {
 	private final class TestObject2 {
 		@Listen
 		public void handle(TestEvent testEvent) {
-			System.out.println("[TestObject2," + Thread.currentThread().getName() + "]: UH! Found one!");
+			System.out.println("[TestObject2," + Thread.currentThread().getName() + "]: UH! Found one! " + testEvent);
 		}
 
 		@Override

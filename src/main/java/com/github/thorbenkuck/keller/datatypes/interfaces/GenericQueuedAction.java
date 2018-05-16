@@ -31,4 +31,17 @@ public interface GenericQueuedAction<T> {
 	 */
 	default void doAfter(T t) {
 	}
+
+	/**
+	 * Diese Methode ruft die notwendigen methoden auf. Dadurch muss das nicht immer wieder geschrieben werden.
+	 */
+	static <T> void call(GenericQueuedAction<T> action, T value) {
+		action.doBefore(value);
+		action.doAction(value);
+		action.doAfter(value);
+	}
+
+	static <T> void call(Value<GenericQueuedAction<T>> actionValue, T value) {
+		call(actionValue.get(), value);
+	}
 }

@@ -3,7 +3,6 @@ package com.github.thorbenkuck.keller.mvp;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Factory;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.sync.Awaiting;
-import com.github.thorbenkuck.keller.sync.DefaultCountDownLatchSynchronize;
 import com.github.thorbenkuck.keller.sync.Synchronize;
 
 import java.util.*;
@@ -64,7 +63,7 @@ public final class AsynchronousViewController implements ViewController {
 	@Override
 	public Awaiting openMainStage(final Class<? extends View> viewClass) {
 		Objects.requireNonNull(viewClass);
-		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
+		Synchronize synchronize = Synchronize.ofCountDownLatch();
 
 		final Factory<View> viewFactory = safeGetViewFactory(viewClass);
 
@@ -84,7 +83,7 @@ public final class AsynchronousViewController implements ViewController {
 	@Override
 	public Awaiting openSeparateStage(final Class<? extends View> viewClass) {
 		Objects.requireNonNull(viewClass);
-		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
+		Synchronize synchronize = Synchronize.ofCountDownLatch();
 
 		final Factory<View> viewFactory = safeGetViewFactory(viewClass);
 
@@ -118,7 +117,7 @@ public final class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeAll() {
-		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
+		Synchronize synchronize = Synchronize.ofCountDownLatch();
 		runOnOtherThread(() -> {
 			try {
 				closeAllSeparateStages().synchronize();
@@ -132,7 +131,7 @@ public final class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeAllSeparateStages() {
-		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
+		Synchronize synchronize = Synchronize.ofCountDownLatch();
 		runOnOtherThread(() -> {
 			for (View stage : separateViews) {
 				getActiveSeparateStage(stage.getClass()).ifPresent(this::closeStageSynchronizedOnCurrentThread);
@@ -143,7 +142,7 @@ public final class AsynchronousViewController implements ViewController {
 
 	@Override
 	public Awaiting closeSeparateActiveStage(final Class<? extends View> viewClass) {
-		Synchronize synchronize = new DefaultCountDownLatchSynchronize();
+		Synchronize synchronize = Synchronize.ofCountDownLatch();
 		runOnOtherThread(() -> getActiveSeparateStage(viewClass).ifPresent(this::closeStageSynchronizedOnCurrentThread), synchronize);
 		return synchronize;
 	}

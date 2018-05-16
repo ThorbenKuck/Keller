@@ -51,5 +51,6 @@ class TestCacheObserver implements CacheObserver<TestObject> {
 	@Override
 	public void deletedEntry(Class<TestObject> t, Cache cache) {
 		System.out.println("oh, gelöscht.. " + t);
+		cache.removeCacheObserver(TestObject.class, this);
 	}
 }

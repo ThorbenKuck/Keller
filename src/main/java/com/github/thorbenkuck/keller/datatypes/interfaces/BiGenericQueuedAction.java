@@ -31,4 +31,17 @@ public interface BiGenericQueuedAction<T, U> {
 	 */
 	default void doAfter(T t, U u) {
 	}
+
+	/**
+	 * Diese Methode ruft die notwendigen methoden auf. Dadurch muss das nicht immer wieder geschrieben werden.
+	 */
+	static <T, U> void call(BiGenericQueuedAction<T, U> action, T value, U secondValue) {
+		action.doBefore(value,secondValue);
+		action.doAction(value, secondValue);
+		action.doAfter(value, secondValue);
+	}
+
+	static <T, U> void call(Value<BiGenericQueuedAction<T, U>> actionValue, T value, U secondValue) {
+		call(actionValue.get(), value, secondValue);
+	}
 }
