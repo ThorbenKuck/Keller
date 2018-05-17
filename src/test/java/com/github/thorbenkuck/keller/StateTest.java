@@ -1,6 +1,8 @@
 package com.github.thorbenkuck.keller;
 
+import com.github.thorbenkuck.keller.di.EnforceCreation;
 import com.github.thorbenkuck.keller.di.SingleInstanceOnly;
+import com.github.thorbenkuck.keller.di.Use;
 import com.github.thorbenkuck.keller.state.*;
 import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 import org.junit.Test;
@@ -18,15 +20,18 @@ public class StateTest {
 
 	@SingleInstanceOnly
 	private class SecondDependency {
+		@Use
 		public SecondDependency() {
 			System.out.println("Instantiated SecondDependency");
 		}
 	}
 
+	@SingleInstanceOnly
 	private class FirstDependency {
 		int count;
 
-		public FirstDependency(SecondDependency secondDependency) {
+		@Use
+		public FirstDependency(@EnforceCreation SecondDependency secondDependency) {
 			count = 0;
 			System.out.println("Instantiated FirstDependency");
 		}
@@ -35,7 +40,7 @@ public class StateTest {
 	private class FirstState {
 
 		@StateAction
-		public void action(SecondDependency secondDependency) {
+		public void action(@EnforceCreation SecondDependency secondDependency) {
 			System.out.println("In first state ..");
 		}
 
@@ -45,7 +50,7 @@ public class StateTest {
 		}
 
 		@NextState
-		public SecondState followup() {
+		public SecondState nextState() {
 			return new SecondState();
 		}
 	}

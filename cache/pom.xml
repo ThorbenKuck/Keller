@@ -1,10 +1,11 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.thorbenkuck</groupId>
-    <artifactId>Keller</artifactId>
-    <version>1.4.5.2-SNAPSHOT</version>
+    <artifactId>keller-cache</artifactId>
+    <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
-    <name>Keller</name>
+    <name>Keller-Cache</name>
     <description>Keller is a universal base-package</description>
     <url>https://github.com/ThorbenKuck/Keller</url>
     <properties>
@@ -12,18 +13,6 @@
             UTF-8
         </project.build.sourceEncoding>
     </properties>
-
-    <modules>
-        <module>core</module>
-        <module>cache</module>
-        <module>comm</module>
-        <module>di</module>
-        <module>event</module>
-        <module>mvp</module>
-        <module>nio</module>
-        <module>repo</module>
-        <module>state</module>
-    </modules>
 
     <scm>
         <connection>scm:git:git@github.com:ThorbenKuck/Keller.git</connection>
@@ -148,47 +137,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-cache</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-comm</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
             <artifactId>keller-core</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-events</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-di</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-mvp</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-nio</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-repo</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>com.github.thorbenkuck</groupId>
-            <artifactId>keller-state</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>

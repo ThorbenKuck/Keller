@@ -51,7 +51,7 @@ If you want to use a command-pattern, look no further. You can use this package 
 </li>
 <! test !>
 <li>
-<h3>datatypes</h3>
+<h3>com.github.thorbenkuck.keller.datatypes</h3>
 <p>
 There are some interfaces and data types, provided by this framework, which include
 <ul>
@@ -82,7 +82,7 @@ Also this frameworks contains a base for the "Pipeline-Pattern" which takes of t
 <li>
 <h3>Utility</h3>
 <p>
-The utility package contains some handy classes for multiple actions
+The com.github.thorbenkuck.keller.utility package contains some handy classes for multiple actions
 </p>
 </li>
 

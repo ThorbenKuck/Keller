@@ -7,7 +7,6 @@ import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
-import org.junit.Test;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
