@@ -1,4 +1,4 @@
-package com.github.thorbenkuck.keller.di;
+package com.github.thorbenkuck.keller.di.annotations;
 
 import java.lang.annotation.*;
 

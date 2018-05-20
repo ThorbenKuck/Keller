@@ -1,6 +1,8 @@
 package com.github.thorbenkuck.keller.state;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+import com.github.thorbenkuck.keller.state.annotations.NextState;
+import com.github.thorbenkuck.keller.state.annotations.StateAction;
 
 public final class EndState {
 

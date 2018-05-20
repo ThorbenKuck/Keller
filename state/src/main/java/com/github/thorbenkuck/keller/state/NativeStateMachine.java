@@ -2,6 +2,10 @@ package com.github.thorbenkuck.keller.state;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.di.DependencyManager;
+import com.github.thorbenkuck.keller.state.annotations.NextState;
+import com.github.thorbenkuck.keller.state.annotations.StateAction;
+import com.github.thorbenkuck.keller.state.annotations.StateTransitionFactory;
+import com.github.thorbenkuck.keller.state.annotations.TearDown;
 import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 
 import java.lang.annotation.Annotation;
@@ -141,7 +145,7 @@ final class NativeStateMachine implements StateMachine {
 
 	@Override
 	public void addStateDependency(Object object) {
-		dependencyManagerValue.get().addPreConstructedDependency(object);
+		dependencyManagerValue.get().inject(object);
 	}
 
 	@Override

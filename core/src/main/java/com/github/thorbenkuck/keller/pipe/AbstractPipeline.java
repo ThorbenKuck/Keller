@@ -1,5 +1,6 @@
 package com.github.thorbenkuck.keller.pipe;
 
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.observers.ObservableValue;
 
 import java.io.Serializable;
@@ -20,7 +21,10 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 		this.core = c;
 	}
 
-	private void run(final PipelineElement<T>[] collection, final ObservableValue<T> value) {
+	private void run(final PipelineElement<T>[] collection, final Value<T> value) {
+		if(collection.length == 0) {
+			return;
+		}
 		for (PipelineElement<T> pipelineService : collection) {
 			// Done, to protect from potential problems
 			// The JVM might still optimize it. That's
@@ -37,12 +41,12 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 
 	// What is up with your
 	// generic system java..
-	// Why?
+	// Why? This inconsistency...
 	@SuppressWarnings("unchecked")
 	@Override
 	public final T apply(final T element) {
 		assertIsOpen();
-		final ObservableValue<T> value = ObservableValue.of(element);
+		final Value<T> value = Value.of(element);
 		final PipelineElement<T>[] elements;
 		synchronized (core) {
 			elements = new ArrayList<>(core).toArray(new PipelineElement[core.size()]);

@@ -1,122 +1,140 @@
 package com.github.thorbenkuck.keller.di;
 
-import com.github.thorbenkuck.keller.datatypes.interfaces.TriConsumer;
+import com.github.thorbenkuck.keller.annotations.APILevel;
+import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+import com.github.thorbenkuck.keller.di.annotations.Bind;
+import com.github.thorbenkuck.keller.di.annotations.BindAs;
+import com.github.thorbenkuck.keller.di.annotations.RequireNew;
 import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedType;
 import java.util.*;
+import java.util.function.Function;
 
 final class NativeDependencyManager implements DependencyManager {
 
-	private final Map<Class<?>, Object> dependencies = new HashMap<>();
-	private final DIConstructor diConstructor = new DIConstructor();
-	private final Map<Annotation, TriConsumer<Class, Map<Class<?>, Object>, DependencyManager>> annotationStrategies = new HashMap<>();
-
-	NativeDependencyManager() {
-		// annotationStrategies.put(RequireNew.class, (aClass, classObjectMap, dependencyManager) -> )
-	}
+	private final Map<Class<?>, Object> injectedDependencies = new HashMap<>();
+	private final InstantiateDispatcher dispatcher = new NativeInstantiateDispatcher(injectedDependencies);
+	private final Value<Function<Class<?>, Class<?>[]>> bindingTypeStrategyValue = Value.synchronize(new NativeBindingTypeStrategy());
 
 	private <T> T dispatchConstruction(Class<T> type) {
-		final Map<Class<?>, Object> copy;
+		return dispatcher.construct(type);
+	}
 
-		synchronized (dependencies) {
-			copy = new HashMap<>(dependencies);
+	private <T> T dispatchGet(Class<T> type) {
+		return dispatcher.getOrConstruct(type);
+	}
+
+	private Class<?>[] getBindingType(Class<?> clazz) {
+		return bindingTypeStrategyValue.get().apply(clazz);
+	}
+
+	private void dispatchInject(Class<?> clazz, Object object) {
+		synchronized (injectedDependencies) {
+			injectedDependencies.put(clazz, object);
 		}
+	}
 
-		return diConstructor.construct(type, copy, this::addAsIfNotContained);
+	@Override
+	public InstantiateDispatcher getDispatcher() {
+		return dispatcher;
 	}
 
 	@Override
 	public void applyNew(final Map<Class<?>, Object> dependencies) {
-		for(Object object : dependencies.values()) {
-			if(!isSet(object.getClass())) {
-				addPreConstructedDependency(object);
+		for (Object object : dependencies.values()) {
+			if (!isInjected(object.getClass())) {
+				inject(object);
 			}
 		}
 	}
 
 	@Override
-	public void addPreConstructedDependency(final Object object) {
-		Keller.parameterNotNull(object);
-		synchronized (dependencies) {
-			dependencies.put(object.getClass(), object);
-		}
-	}
-
-	@Override
 	public void clear() {
-		synchronized (dependencies) {
-			dependencies.clear();
+		synchronized (injectedDependencies) {
+			injectedDependencies.clear();
+		}
+
+		dispatcher.clear();
+	}
+
+	@Override
+	public void setBindingTypeStrategy(Function<Class<?>, Class<?>[]> strategy) {
+		bindingTypeStrategyValue.set(strategy);
+	}
+
+	@Override
+	public <T> T removeInjectedDependency(Class<T> tClass) {
+		synchronized (injectedDependencies) {
+			return (T) injectedDependencies.remove(tClass);
 		}
 	}
 
 	@Override
-	public <T> T removeStateDependency(Class<T> tClass) {
-		synchronized (dependencies) {
-			return (T) dependencies.remove(tClass);
+	public void injectAsIfNotContained(final Object object, final Class<?> type) {
+		Keller.parameterNotNull(object, type);
+		if (isInjected(type)) {
+			return;
 		}
+		injectAs(object, type);
 	}
 
 	@Override
-	public void addAs(final Object object, final Class<?> type) {
+	public void injectAs(final Object object, final Class<?> type) {
 		Keller.parameterNotNull(object, type);
 		if (!type.isAssignableFrom(object.getClass())) {
 			throw new IllegalArgumentException("Provided Class (" + type + ") is not assignable from " + object.getClass());
 		}
 
-		synchronized (dependencies) {
-			dependencies.put(type, object);
+		synchronized (injectedDependencies) {
+			injectedDependencies.put(type, object);
 		}
 	}
 
 	@Override
-	public void addAsIfNotContained(final Object object, final Class<?> type) {
-		Keller.parameterNotNull(object, type);
-		if (isSet(type)) {
-			return;
-		}
-		addAs(object, type);
-	}
-
-	@Override
-	public void addPreConstructedDependencyIfNotContained(final Object object) {
+	public void injectIfNotContained(final Object object) {
 		Keller.parameterNotNull(object);
-		if(isSet(object.getClass())) {
-			return;
+
+		for(Class<?> clazz : getBindingType(object.getClass())) {
+			if (!isInjected(clazz)) {
+				dispatchInject(clazz, object);
+			}
 		}
-		addPreConstructedDependency(object);
+	}
+
+	@Override
+	public void inject(final Object object) {
+		Keller.parameterNotNull(object);
+		for(Class<?> clazz : getBindingType(object.getClass())) {
+			dispatchInject(clazz, object);
+		}
 	}
 
 	@Override
 	@SuppressWarnings("unchecked")
-	public <T> T getSetDependency(final Class<T> clazz) {
-		synchronized (dependencies) {
-			return (T) dependencies.get(clazz);
+	public <T> T getInjectedDependency(final Class<T> clazz) {
+		synchronized (injectedDependencies) {
+			return (T) injectedDependencies.get(clazz);
 		}
 	}
 
 	@Override
-	public boolean isSet(final Class<?> clazz) {
-		return getSetDependency(clazz) != null;
+	public boolean isInjected(final Class<?> clazz) {
+		return getInjectedDependency(clazz) != null;
 	}
 
 	@Override
 	public <T> T get(final Class<T> type) {
-		if(isSet(type)) {
-			return getSetDependency(type);
+		if (isInjected(type)) {
+			return getInjectedDependency(type);
 		}
 
-		return dispatchConstruction(type);
+		return dispatchGet(type);
 	}
 
 	@Override
 	public <T> T getAccordingToAnnotation(final Class<T> type, final Annotation[] annotations) {
-		//for(Annotation annotation : com.github.thorbenkuck.keller.annotations) {
-		//	TriConsumer<Class, Map<Class<?>, Object>, DependencyManager> strategy = annotationStrategies.get(annotation);
-		//	if(strategy != null) {
-		//		strategy.accept(type, dependencies, this);
-		//	}
-		//}
 		if (annotations != null && Arrays.stream(annotations).anyMatch(annotation -> annotation instanceof RequireNew)) {
 			return dispatchConstruction(type);
 		} else {
@@ -125,10 +143,68 @@ final class NativeDependencyManager implements DependencyManager {
 	}
 
 	@Override
-	public List<Object> getCachedDependencies() {
-		synchronized (dependencies) {
-			return new ArrayList<>(dependencies.values());
+	public Map<Class<?>, Object> getBindings() {
+		synchronized (injectedDependencies) {
+			return Keller.merge(injectedDependencies, dispatcher.getBindings());
 		}
 	}
 
+	@Override
+	public Map<Class<?>, Object> getInjectedBinding() {
+		synchronized (injectedDependencies) {
+			return new HashMap<>(injectedDependencies);
+		}
+	}
+
+	@Override
+	public Map<Class<?>, Object> getConstructedBindings() {
+		return dispatcher.getBindings();
+	}
+
+	@Override
+	public List<Object> getCachedDependencies() {
+		return new ArrayList<>(getConstructedBindings().values());
+	}
+
+	@Override
+	public List<Object> getInjectedDependencies() {
+		synchronized (injectedDependencies) {
+			return new ArrayList<>(injectedDependencies.values());
+		}
+	}
+
+	@APILevel
+	private final class NativeBindingTypeStrategy implements Function<Class<?>, Class<?>[]> {
+
+		/**
+		 * Applies this function to the given argument.
+		 *
+		 * @param clazz the function argument
+		 * @return the function result
+		 */
+		@Override
+		public Class<?>[] apply(Class<?> clazz) {
+			if(clazz.isAnnotationPresent(BindAs.class)) {
+				return clazz.getAnnotation(BindAs.class).value();
+			}
+
+			final List<Class<?>> type = new ArrayList<>();
+			if(clazz.isAnnotationPresent(Bind.class)) {
+				type.add(clazz);
+			}
+
+			for(AnnotatedType annotatedType : clazz.getAnnotatedInterfaces()) {
+				if(annotatedType.isAnnotationPresent(Bind.class)) {
+					type.add((Class<?>) annotatedType.getType());
+				}
+			}
+
+			AnnotatedType superClass = clazz.getAnnotatedSuperclass();
+			if(superClass.isAnnotationPresent(Bind.class)) {
+				type.add((Class<?>) superClass.getType());
+			}
+
+			return type.toArray(new Class[type.size()]);
+		}
+	}
 }

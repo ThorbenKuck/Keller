@@ -1,4 +1,6 @@
-package com.github.thorbenkuck.keller.state;
+package com.github.thorbenkuck.keller.state.annotations;
+
+import com.github.thorbenkuck.keller.state.StateMachine;
 
 import java.lang.annotation.*;
 

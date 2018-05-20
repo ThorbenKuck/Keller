@@ -1,9 +1,14 @@
 package com.github.thorbenkuck.keller;
 
-import com.github.thorbenkuck.keller.di.BindAs;
-import com.github.thorbenkuck.keller.di.SingleInstanceOnly;
-import com.github.thorbenkuck.keller.di.Use;
+import com.github.thorbenkuck.keller.di.annotations.Bind;
+import com.github.thorbenkuck.keller.di.annotations.Cache;
+import com.github.thorbenkuck.keller.di.annotations.Implementation;
+import com.github.thorbenkuck.keller.di.annotations.Use;
 import com.github.thorbenkuck.keller.state.*;
+import com.github.thorbenkuck.keller.state.annotations.NextState;
+import com.github.thorbenkuck.keller.state.annotations.StateAction;
+import com.github.thorbenkuck.keller.state.annotations.StateTransitionFactory;
+import com.github.thorbenkuck.keller.state.annotations.TearDown;
 import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 import org.junit.Test;
 
@@ -18,20 +23,19 @@ public class StateTest {
 		stateMachine.start(new FirstState());
 	}
 
+	@Implementation(SecondDependency.class)
 	private interface SomeInterface {
 	}
 
-	@SingleInstanceOnly
-	@BindAs(SomeInterface.class)
-	private class SecondDependency implements SomeInterface {
+	@Cache
+	private @Bind class SecondDependency implements @Bind SomeInterface {
 		@Use
 		public SecondDependency() {
 			System.out.println("Instantiated SecondDependency");
 		}
 	}
 
-	@BindAs(FirstDependency.class)
-	@SingleInstanceOnly
+	@Cache
 	private class FirstDependency {
 		int count;
 

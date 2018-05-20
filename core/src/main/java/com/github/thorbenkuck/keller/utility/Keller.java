@@ -6,6 +6,14 @@ public final class Keller {
 
 	private static final Set<Class<?>> PRIMITIVE_SETS = new HashSet<>();
 
+	public static <T, V> Map<T, V> merge(Map<T, V> one, Map<T, V> two) {
+		final Map<T, V> result = new HashMap<>();
+		result.putAll(one);
+		result.putAll(two);
+
+		return result;
+	}
+
 	public static boolean isPrimitiveOrWrapperType(Object object) {
 		return isPrimitive(object.getClass()) || isWrapper(object.getClass());
 	}

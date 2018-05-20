@@ -1,27 +1,29 @@
 package com.github.thorbenkuck.keller.di;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
+import com.github.thorbenkuck.keller.di.annotations.RequireNew;
+import com.github.thorbenkuck.keller.di.annotations.Use;
+import com.github.thorbenkuck.keller.di.exceptions.InstantiateException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 final class DIConstructor {
 
-	private Class<?>[] getBinds(Class<?> type) {
-		if (type.isAnnotationPresent(BindAs.class)) {
-			return type.getAnnotation(BindAs.class).value();
-		} else {
-			return new Class<?>[]{type};
-		}
+	private final DependencyManager dispatcher;
+
+	DIConstructor(DependencyManager dispatcher) {
+		this.dispatcher = dispatcher;
 	}
 
-	private <T> T instantiateCheckAndReturn(final Constructor<?> constructor, final Class<T> clazz,
-											final BiConsumer<Object, Class<?>> constructedCallback, final Object[] parameters) {
+	DIConstructor() {
+		dispatcher = null;
+	}
+
+	private <T> T instantiateCheckAndReturn(final Constructor<?> constructor, final Object[] parameters) {
 		try {
 			final Object instance;
 			final boolean constructorAccessible = constructor.isAccessible();
@@ -36,20 +38,13 @@ final class DIConstructor {
 				constructor.setAccessible(constructorAccessible);
 			}
 
-			final Class<?>[] types = getBinds(clazz);
-
-			if (clazz.isAnnotationPresent(SingleInstanceOnly.class)) {
-				Arrays.stream(types)
-						.forEachOrdered(current -> constructedCallback.accept(instance, current));
-			}
-
 			return (T) instance;
 		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-			throw new IllegalStateException(e);
+			throw new InstantiateException(e);
 		}
 	}
 
-	private Object[] constructParameters(final Constructor<?> constructor, final Map<Class<?>, Object> constructed, final BiConsumer<Object, Class<?>> constructedCallback) {
+	private Object[] constructParameters(final Constructor<?> constructor, final Map<Class<?>, Object> constructed) {
 		if (constructor == null) {
 			return new Object[0];
 		}
@@ -59,10 +54,10 @@ final class DIConstructor {
 
 		for (int i = 1; i < parameters.length; i++) {
 			final Class<?> clazz = types[i];
-			final Object instance = createSingleParameter(clazz, constructed, annotations[i -1], constructedCallback);
+			final Object instance = createSingleParameter(clazz, constructed, annotations[i -1]);
 
 			if (instance == null) {
-				throw new IllegalStateException("Could not construct parameter " + clazz);
+				throw new InstantiateException("Could not construct parameter " + clazz);
 			}
 			parameters[i] = instance;
 		}
@@ -70,7 +65,15 @@ final class DIConstructor {
 		return parameters;
 	}
 
-	private Object createSingleParameter(final Class<?> clazz, final Map<Class<?>, Object> constructed, final Annotation[] annotations, final BiConsumer<Object, Class<?>> constructedCallback) {
+	private Object dispatchCreation(final Class<?> clazz, final Map<Class<?>, Object> constructed) {
+		if(dispatcher != null) {
+			return dispatcher.get(clazz);
+		}
+
+		return construct(clazz, constructed);
+	}
+
+	private Object createSingleParameter(final Class<?> clazz, final Map<Class<?>, Object> constructed, final Annotation[] annotations) {
 		final Object instance;
 		boolean enforce = false;
 		for(Annotation annotation : annotations) {
@@ -80,7 +83,7 @@ final class DIConstructor {
 		}
 
 		if (enforce || constructed.get(clazz) == null) {
-			instance = construct(clazz, constructed, constructedCallback);
+			instance = dispatchCreation(clazz, constructed);
 		} else {
 			instance = constructed.get(clazz);
 		}
@@ -101,7 +104,7 @@ final class DIConstructor {
 		for (final Constructor constructor : constructors) {
 			if (constructor.isAnnotationPresent(Use.class)) {
 				if (!currentUsed.isEmpty()) {
-					throw new IllegalStateException("The Class " + clazz + " has multiple Constructors annotated with @Use.");
+					throw new InstantiateException("The Class " + clazz + " has multiple Constructors annotated with @Use.");
 				}
 				currentUsed.set(constructor);
 			}
@@ -115,16 +118,15 @@ final class DIConstructor {
 		} else if (!defaultConstructor.isEmpty()) {
 			return defaultConstructor.get();
 		} else {
-			throw new IllegalStateException("The Class " + clazz + " cannot be constructed!\n" +
-					"It has to provide any Constructor without parameters or an Constructor annotated with @Use");
+			throw new InstantiateException("The Class " + clazz + " cannot be constructed!\n" +
+					"It has to provide any Constructor without parameters, a Constructor annotated with @Use or exactly one Constructor");
 		}
 	}
 
-	@SuppressWarnings("unchecked")
-	final <T> T construct(final Class<T> clazz, final Map<Class<?>, Object> preConstructedDependencies, final BiConsumer<Object, Class<?>> constructedCallback) {
+	final <T> T construct(final Class<T> clazz, final Map<Class<?>, Object> preConstructedDependencies) {
 		final Map<Class<?>, Object> constructed = new HashMap<>(preConstructedDependencies);
 		final Constructor<?> constructor = getConstructor(clazz);
 
-		return instantiateCheckAndReturn(constructor, clazz, constructedCallback, constructParameters(constructor, constructed, constructedCallback));
+		return instantiateCheckAndReturn(constructor, constructParameters(constructor, constructed));
 	}
 }

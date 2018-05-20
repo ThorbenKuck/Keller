@@ -1,12 +1,12 @@
-package com.github.thorbenkuck.keller.di;
+package com.github.thorbenkuck.keller.di.annotations;
 
 import java.lang.annotation.*;
 
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
-public @interface BindAs {
+public @interface Implementation {
 
-	Class<?>[] value();
+	Class<?> value();
 
 }
