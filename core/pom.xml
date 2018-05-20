@@ -2,7 +2,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.thorbenkuck</groupId>
     <artifactId>keller-core</artifactId>
-    <version>1.0</version>
+    <version>1.1-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>Keller-Core</name>
     <description>Keller is a universal base-package</description>
@@ -17,7 +17,7 @@
         <connection>scm:git:git@github.com:ThorbenKuck/Keller.git</connection>
         <url>scm:git:git@github.com:ThorbenKuck/Keller.git</url>
         <developerConnection>scm:git:git@github.com:ThorbenKuck/Keller.git</developerConnection>
-        <tag>keller-core-1.0</tag>
+        <tag>Keller-1.4</tag>
     </scm>
 
     <developers>
