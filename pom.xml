@@ -3,7 +3,7 @@
     <groupId>com.github.thorbenkuck</groupId>
     <artifactId>Keller</artifactId>
     <version>1.4.5.2-SNAPSHOT</version>
-    <packaging>jar</packaging>
+    <packaging>pom</packaging>
     <name>Keller</name>
     <description>Keller is a universal base-package</description>
     <url>https://github.com/ThorbenKuck/Keller</url>
