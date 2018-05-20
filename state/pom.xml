@@ -142,7 +142,7 @@
         <dependency>
             <groupId>com.github.thorbenkuck</groupId>
             <artifactId>keller-di</artifactId>
-            <version>1.0</version>
+            <version>1.1-SNAPSHOT</version>
         </dependency>
     </dependencies>
 </project>

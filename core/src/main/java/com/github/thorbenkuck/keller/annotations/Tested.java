@@ -18,6 +18,7 @@ import java.lang.annotation.*;
  */
 @APILevel
 @Documented
+@Repeatable(Tests.class)
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.SOURCE)
 public @interface Tested {

@@ -1,9 +1,6 @@
 package com.github.thorbenkuck.keller;
 
-import com.github.thorbenkuck.keller.di.annotations.Bind;
-import com.github.thorbenkuck.keller.di.annotations.Cache;
-import com.github.thorbenkuck.keller.di.annotations.Implementation;
-import com.github.thorbenkuck.keller.di.annotations.Use;
+import com.github.thorbenkuck.keller.di.annotations.*;
 import com.github.thorbenkuck.keller.state.*;
 import com.github.thorbenkuck.keller.state.annotations.NextState;
 import com.github.thorbenkuck.keller.state.annotations.StateAction;
@@ -20,6 +17,7 @@ public class StateTest {
 	public void test() {
 		StateMachine stateMachine = StateMachine.create();
 		stateMachine.addStateDependency(new SecondDependency());
+		stateMachine.addStateDependency(new Counter());
 		stateMachine.start(new FirstState());
 	}
 
@@ -59,13 +57,34 @@ public class StateTest {
 		}
 
 		@NextState
-		public SecondState nextState() {
-			return new SecondState();
+		public Object nextState() {
+			return new CountingState();
 		}
 
 		@TearDown
 		public void tearDown() {
 			System.out.println("First State destructed");
+		}
+	}
+
+	private class CountingState {
+
+		private Counter counter;
+
+		@StateAction
+		public void action(Counter counter) {
+			counter.increase();
+			System.out.println("Count at " + counter.getCount());
+			this.counter = counter;
+		}
+
+		@NextState
+		public Object nextState() {
+			if(counter.getCount() >= 3) {
+				return new SecondState();
+			} else {
+				return this;
+			}
 		}
 	}
 
@@ -108,6 +127,23 @@ public class StateTest {
 		@Override
 		public void transit() throws InterruptedException {
 			base.transit();
+		}
+	}
+
+	private class Counter {
+
+		private int count;
+
+		public Counter() {
+			count = 0;
+		}
+
+		public int getCount() {
+			return count;
+		}
+
+		public void increase() {
+			++count;
 		}
 	}
 }

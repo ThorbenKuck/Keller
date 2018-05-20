@@ -188,23 +188,27 @@ final class NativeDependencyManager implements DependencyManager {
 				return clazz.getAnnotation(BindAs.class).value();
 			}
 
-			final List<Class<?>> type = new ArrayList<>();
+			final List<Class<?>> types = new ArrayList<>();
 			if(clazz.isAnnotationPresent(Bind.class)) {
-				type.add(clazz);
+				types.add(clazz);
 			}
 
 			for(AnnotatedType annotatedType : clazz.getAnnotatedInterfaces()) {
 				if(annotatedType.isAnnotationPresent(Bind.class)) {
-					type.add((Class<?>) annotatedType.getType());
+					types.add((Class<?>) annotatedType.getType());
 				}
 			}
 
 			AnnotatedType superClass = clazz.getAnnotatedSuperclass();
 			if(superClass.isAnnotationPresent(Bind.class)) {
-				type.add((Class<?>) superClass.getType());
+				types.add((Class<?>) superClass.getType());
 			}
 
-			return type.toArray(new Class[type.size()]);
+			if(types.isEmpty()) {
+				return new Class<?>[]{clazz};
+			}
+
+			return types.toArray(new Class[types.size()]);
 		}
 	}
 }
