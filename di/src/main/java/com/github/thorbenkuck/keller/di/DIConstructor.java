@@ -5,39 +5,51 @@ import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 final class DIConstructor {
 
+	private Class<?>[] getBinds(Class<?> type) {
+		if (type.isAnnotationPresent(BindAs.class)) {
+			return type.getAnnotation(BindAs.class).value();
+		} else {
+			return new Class<?>[]{type};
+		}
+	}
+
 	private <T> T instantiateCheckAndReturn(final Constructor<?> constructor, final Class<T> clazz,
-	                                        final Consumer<Object> constructedCallback, final Object[] parameters) {
+											final BiConsumer<Object, Class<?>> constructedCallback, final Object[] parameters) {
 		try {
-			final T instance;
+			final Object instance;
 			final boolean constructorAccessible = constructor.isAccessible();
 			constructor.setAccessible(true);
 			try {
 				if (parameters.length == 0) {
-					instance = (T) constructor.newInstance();
+					instance = constructor.newInstance();
 				} else {
-					instance = (T) constructor.newInstance(parameters);
+					instance = constructor.newInstance(parameters);
 				}
 			} finally {
 				constructor.setAccessible(constructorAccessible);
 			}
 
+			final Class<?>[] types = getBinds(clazz);
+
 			if (clazz.isAnnotationPresent(SingleInstanceOnly.class)) {
-				constructedCallback.accept(instance);
+				Arrays.stream(types)
+						.forEachOrdered(current -> constructedCallback.accept(instance, current));
 			}
 
-			return instance;
+			return (T) instance;
 		} catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
 			throw new IllegalStateException(e);
 		}
 	}
 
-	private Object[] constructParameters(final Constructor<?> constructor, final Map<Class<?>, Object> constructed, final Consumer<Object> constructedCallback) {
+	private Object[] constructParameters(final Constructor<?> constructor, final Map<Class<?>, Object> constructed, final BiConsumer<Object, Class<?>> constructedCallback) {
 		if (constructor == null) {
 			return new Object[0];
 		}
@@ -58,11 +70,11 @@ final class DIConstructor {
 		return parameters;
 	}
 
-	private Object createSingleParameter(final Class<?> clazz, final Map<Class<?>, Object> constructed, final Annotation[] annotations, final Consumer<Object> constructedCallback) {
+	private Object createSingleParameter(final Class<?> clazz, final Map<Class<?>, Object> constructed, final Annotation[] annotations, final BiConsumer<Object, Class<?>> constructedCallback) {
 		final Object instance;
 		boolean enforce = false;
 		for(Annotation annotation : annotations) {
-			if(annotation instanceof EnforceCreation) {
+			if (annotation instanceof RequireNew) {
 				enforce = true;
 			}
 		}
@@ -109,7 +121,7 @@ final class DIConstructor {
 	}
 
 	@SuppressWarnings("unchecked")
-	final <T> T construct(final Class<T> clazz, final Map<Class<?>, Object> preConstructedDependencies, final Consumer<Object> constructedCallback) {
+	final <T> T construct(final Class<T> clazz, final Map<Class<?>, Object> preConstructedDependencies, final BiConsumer<Object, Class<?>> constructedCallback) {
 		final Map<Class<?>, Object> constructed = new HashMap<>(preConstructedDependencies);
 		final Constructor<?> constructor = getConstructor(clazz);
 

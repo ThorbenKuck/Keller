@@ -7,7 +7,7 @@ import java.lang.annotation.*;
  * is required to be instantiated.
  *
  * This Annotation override the {@link SingleInstanceOnly} annotation, which in itself is to signal an Singleton. This means,
- * that even if any instance is already create, this parameter will be created.
+ * that even if any instance is already created, this parameter will be created again.
  *
  * This might not bee, what you want. In most cases, this Annotation should not be used. However, there are some rare
  * cases, where this is needed.
@@ -18,5 +18,5 @@ import java.lang.annotation.*;
 @Documented
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)
-public @interface EnforceCreation {
+public @interface RequireNew {
 }

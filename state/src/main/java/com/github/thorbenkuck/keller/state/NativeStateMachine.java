@@ -12,39 +12,15 @@ final class NativeStateMachine implements StateMachine {
 	private final Value<InternalState> currentStateValue = Value.emptySynchronized();
 	private final Value<StateTransition> currentStateTransitionValue = Value.emptySynchronized();
 	private final Value<DependencyManager> dependencyManagerValue = Value.synchronize(DependencyManager.create());
-
-	@Override
-	public void start(Object object) {
-		currentStateValue.set(constructInternalState(object));
-		while(!currentStateValue.isEmpty()) {
-			handleCurrentState();
-		}
-	}
-
-	@Override
-	public void addDependency(Object object) {
-		dependencyManagerValue.get().addPreConstructedDependency(object);
-	}
-
-	@Override
-	public void setDependencyManager(DependencyManager dependencyManager) {
-		dependencyManagerValue.set(dependencyManager);
-	}
-
-	@Override
-	public void continueToNextState() {
-		currentStateTransitionValue.get().finish();
-	}
+	private static final Object[] EMPTY_ARGS = new Object[0];
+	private final Value<Boolean> running = Value.synchronize(false);
 
 	private InternalState constructInternalState(Object object) {
 		Method actionMethod = getActionMethod(object.getClass());
-		if(actionMethod == null) {
-			throw new IllegalStateException("Could not locate Method annotated with StateAction");
-		}
-
 		Method nextStateMethod = getFollowupStateMethod(object.getClass());
 		Method stateTransitionMethod = getStateTransitionFactory(object.getClass());
-		InternalState state = new InternalState(actionMethod, stateTransitionMethod, nextStateMethod, object);
+		Method tearDownMethod = getTearDownMethod(object.getClass());
+		InternalState state = new InternalState(actionMethod, stateTransitionMethod, nextStateMethod, tearDownMethod, object);
 
 		state.check();
 		return state;
@@ -55,20 +31,20 @@ final class NativeStateMachine implements StateMachine {
 		dispatchStateTransition(current);
 		dispatchAction(current);
 		dispatchNextState(current);
+		dispatchTearDown(current);
 	}
 
 	private void dispatchStateTransition(InternalState current) {
-		StateTransition stateTransition;
-
-		if (!current.willCreateStateTransition() || !current.stateTransitionRequiresParameters()) {
-			stateTransition = current.getStateTransition();
-		} else {
-			Method stateTransitionMethod = current.getStateTransitionMethod();
-			Object[] params = constructParameters(stateTransitionMethod);
-			stateTransition = current.getStateTransition(params);
-		}
+		Method stateTransitionMethod = current.getStateTransitionMethod();
+		Object[] params = constructParameters(stateTransitionMethod);
+		StateTransition stateTransition = current.getStateTransition(params);
 
 		tryApplyNewStateTransition(stateTransition);
+	}
+
+	private void dispatchTearDown(InternalState current) {
+		Method tearDownMethod = current.getTearDownMethod();
+		current.dispatchTearDown(constructParameters(tearDownMethod));
 	}
 
 	private void dispatchNextState(InternalState current) {
@@ -92,7 +68,7 @@ final class NativeStateMachine implements StateMachine {
 	}
 
 	private <T extends Annotation> Method findMethodWithAnnotation(Class<?> clazz, Class<? extends T> annotation) {
-		for(Method method : clazz.getMethods()) {
+		for (Method method : clazz.getMethods()) {
 			if (method.isAnnotationPresent(annotation)) {
 				return method;
 			}
@@ -112,12 +88,22 @@ final class NativeStateMachine implements StateMachine {
 		return findMethodWithAnnotation(clazz, StateTransitionFactory.class);
 	}
 
+	private Method getTearDownMethod(Class<?> clazz) {
+		return findMethodWithAnnotation(clazz, TearDown.class);
+	}
+
 	private Object[] constructParameters(Method method) {
+		if (method == null) {
+			return EMPTY_ARGS;
+		}
+		if (method.getParameterCount() == 0) {
+			return EMPTY_ARGS;
+		}
 		final Object[] parameters = new Object[method.getParameterCount()];
 		final Class<?>[] parameterTypes = method.getParameterTypes();
 		Annotation[][] annotations = method.getParameterAnnotations();
 
-		for(int i = 0 ; i < method.getParameterCount() ; i++) {
+		for (int i = 0; i < method.getParameterCount(); i++) {
 			Annotation[] current = annotations[i];
 			Class<?> currentType = parameterTypes[i];
 			Object object = dependencyManagerValue.get().getAccordingToAnnotation(currentType, current);
@@ -128,7 +114,7 @@ final class NativeStateMachine implements StateMachine {
 	}
 
 	private void tryApplyNewState(Object object) {
-		if(object == null) {
+		if (object == null) {
 			currentStateValue.clear();
 		} else {
 			currentStateValue.set(constructInternalState(object));
@@ -137,5 +123,34 @@ final class NativeStateMachine implements StateMachine {
 
 	private void tryApplyNewStateTransition(StateTransition nextStateTransition) {
 		currentStateTransitionValue.set(nextStateTransition);
+	}
+
+	@Override
+	public void stop() {
+		running.set(false);
+	}
+
+	@Override
+	public void start(Object object) {
+		currentStateValue.set(constructInternalState(object));
+		running.set(true);
+		while (!currentStateValue.isEmpty() && running.get()) {
+			handleCurrentState();
+		}
+	}
+
+	@Override
+	public void addStateDependency(Object object) {
+		dependencyManagerValue.get().addPreConstructedDependency(object);
+	}
+
+	@Override
+	public void setDependencyManager(DependencyManager dependencyManager) {
+		dependencyManagerValue.set(dependencyManager);
+	}
+
+	@Override
+	public void step() {
+		currentStateTransitionValue.get().finish();
 	}
 }

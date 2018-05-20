@@ -1,9 +1,9 @@
 package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.di.DependencyManager;
+import com.github.thorbenkuck.keller.di.RequireNew;
 import com.github.thorbenkuck.keller.di.SingleInstanceOnly;
 import com.github.thorbenkuck.keller.di.Use;
-import com.github.thorbenkuck.keller.di.EnforceCreation;
 import org.junit.Test;
 
 public class DITest {
@@ -33,14 +33,14 @@ public class DITest {
 	@SingleInstanceOnly
 	private class DP3 {
 		@Use
-		public DP3(DP1 dp1, @EnforceCreation DP2 dp2) {
+		public DP3(DP1 dp1, @RequireNew DP2 dp2) {
 			System.out.println("DP3 constructed with: " + dp1 + " and " + dp2);
 		}
 	}
 
 	private class DP4 {
 		@Use
-		public DP4(DP3 dp3, @EnforceCreation DP1 dp1) {
+		public DP4(DP3 dp3, @RequireNew DP1 dp1) {
 			System.out.println("DP4 constructed with: " + dp1 + " and " + dp3);
 		}
 	}

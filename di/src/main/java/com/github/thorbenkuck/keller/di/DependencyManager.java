@@ -14,6 +14,14 @@ public interface DependencyManager {
 
 	void addPreConstructedDependency(Object object);
 
+	void clear();
+
+	<T> T removeStateDependency(Class<T> tClass);
+
+	void addAs(Object object, Class<?> type);
+
+	void addAsIfNotContained(Object object, Class<?> type);
+
 	void addPreConstructedDependencyIfNotContained(Object object);
 
 	<T> T getSetDependency(Class<T> clazz);

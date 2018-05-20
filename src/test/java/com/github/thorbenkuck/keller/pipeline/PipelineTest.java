@@ -1,12 +1,15 @@
-package com.github.thorbenkuck.keller.pipe;
+package com.github.thorbenkuck.keller.pipeline;
 
 import com.github.thorbenkuck.keller.TestObject;
 import com.github.thorbenkuck.keller.annotations.Testing;
+import com.github.thorbenkuck.keller.pipe.NativePipeline;
+import com.github.thorbenkuck.keller.pipe.Pipeline;
 import org.junit.Test;
 
 import java.util.function.Consumer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 @Testing(Pipeline.class)
 public class PipelineTest {

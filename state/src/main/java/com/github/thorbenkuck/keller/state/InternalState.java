@@ -11,12 +11,14 @@ final class InternalState {
 	private final Method actionMethod;
 	private final Method stateTransitionMethod;
 	private final Method nextStateMethod;
+	private final Method tearDownMethod;
 	private final Object target;
 
-	InternalState(Method actionMethod, Method stateTransitionMethod, Method nextStateMethod, Object target) {
+	InternalState(Method actionMethod, Method stateTransitionMethod, Method nextStateMethod, Method tearDownMethod, Object target) {
 		this.actionMethod = actionMethod;
 		this.stateTransitionMethod = stateTransitionMethod;
 		this.nextStateMethod = nextStateMethod;
+		this.tearDownMethod = tearDownMethod;
 		this.target = target;
 	}
 
@@ -55,12 +57,22 @@ final class InternalState {
 		return (StateTransition) stateTransition;
 	}
 
+	public void dispatchTearDown(Object... params) {
+		if (tearDownMethod != null) {
+			invoke(tearDownMethod, target, params);
+		}
+	}
+
 	public boolean stateTransitionRequiresParameters() {
 		return willCreateStateTransition() && stateTransitionMethod.getParameterCount() > 0;
 	}
 
 	public boolean willCreateStateTransition() {
 		return stateTransitionMethod != null;
+	}
+
+	public boolean hasCustomTearDown() {
+		return tearDownMethod != null;
 	}
 
 	public Method getActionMethod() {
@@ -79,5 +91,15 @@ final class InternalState {
 		if (actionMethod == null) {
 			throw new IllegalStateException("No method to Execute State provided!");
 		}
+
+		if (willCreateStateTransition() && !StateTransition.class.isAssignableFrom(stateTransitionMethod.getReturnType())) {
+			throw new IllegalStateException("Methods annotated with @StateTransitionFactory have to construct a StateTransition or any custom implementation!\n"
+					+ "Provided: " + stateTransitionMethod.getReturnType() + "\n"
+					+ "Expected: " + StateTransition.class + " (or any implementation of such)");
+		}
+	}
+
+	public Method getTearDownMethod() {
+		return tearDownMethod;
 	}
 }

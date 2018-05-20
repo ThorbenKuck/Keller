@@ -1,6 +1,6 @@
 package com.github.thorbenkuck.keller;
 
-import com.github.thorbenkuck.keller.di.EnforceCreation;
+import com.github.thorbenkuck.keller.di.BindAs;
 import com.github.thorbenkuck.keller.di.SingleInstanceOnly;
 import com.github.thorbenkuck.keller.di.Use;
 import com.github.thorbenkuck.keller.state.*;
@@ -14,24 +14,29 @@ public class StateTest {
 	@Test
 	public void test() {
 		StateMachine stateMachine = StateMachine.create();
-		stateMachine.addDependency(new SecondDependency());
+		stateMachine.addStateDependency(new SecondDependency());
 		stateMachine.start(new FirstState());
 	}
 
+	private interface SomeInterface {
+	}
+
 	@SingleInstanceOnly
-	private class SecondDependency {
+	@BindAs(SomeInterface.class)
+	private class SecondDependency implements SomeInterface {
 		@Use
 		public SecondDependency() {
 			System.out.println("Instantiated SecondDependency");
 		}
 	}
 
+	@BindAs(FirstDependency.class)
 	@SingleInstanceOnly
 	private class FirstDependency {
 		int count;
 
 		@Use
-		public FirstDependency(@EnforceCreation SecondDependency secondDependency) {
+		public FirstDependency(SomeInterface secondDependency) {
 			count = 0;
 			System.out.println("Instantiated FirstDependency");
 		}
@@ -40,7 +45,7 @@ public class StateTest {
 	private class FirstState {
 
 		@StateAction
-		public void action(@EnforceCreation SecondDependency secondDependency) {
+		public void action(SecondDependency secondDependency) {
 			System.out.println("In first state ..");
 		}
 
@@ -53,6 +58,11 @@ public class StateTest {
 		public SecondState nextState() {
 			return new SecondState();
 		}
+
+		@TearDown
+		public void tearDown() {
+			System.out.println("First State destructed");
+		}
 	}
 
 	private class SecondState {
@@ -61,9 +71,39 @@ public class StateTest {
 			System.out.println("In Second State " + dependency.count);
 		}
 
+		@StateTransitionFactory
+		public CustomStateTransition transition() {
+			return new CustomStateTransition();
+		}
+
 		@NextState
 		public EndState nexState() {
 			return EndState.get();
+		}
+	}
+
+	private class CustomStateTransition implements StateTransition {
+
+		final StateTransition base = StateTransition.dead();
+
+		@Override
+		public void finish() {
+			base.finish();
+		}
+
+		@Override
+		public void initialize() {
+			base.initialize();
+		}
+
+		@Override
+		public void reset() {
+			base.reset();
+		}
+
+		@Override
+		public void transit() throws InterruptedException {
+			base.transit();
 		}
 	}
 }

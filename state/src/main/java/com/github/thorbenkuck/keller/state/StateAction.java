@@ -7,7 +7,7 @@ import java.lang.annotation.*;
  *
  * Any Method might be annotated with this annotation. It does not matter, what dependencies are required. Any required
  * dependency, that is requested by the annotated method as an parameter, has to be added to the {@link StateMachine} via
- * {@link StateMachine#addDependency(Object)}.
+ * {@link StateMachine#addStateDependency(Object)}.
  *
  * If the required dependency is not set, the {@link StateMachine} might use an internally maintained {@link com.github.thorbenkuck.keller.di.DependencyManager}
  * to create the missing dependency.

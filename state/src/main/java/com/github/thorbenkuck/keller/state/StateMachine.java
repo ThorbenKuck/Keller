@@ -16,11 +16,13 @@ public interface StateMachine {
 		return new NativeStateMachine();
 	}
 
+	void stop();
+
 	void start(Object object);
 
-	void addDependency(Object object);
+	void addStateDependency(Object object);
 
 	void setDependencyManager(DependencyManager dependencyManager);
 
-	void continueToNextState();
+	void step();
 }

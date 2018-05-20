@@ -6,14 +6,14 @@ import com.github.thorbenkuck.keller.utility.Keller;
 import java.lang.annotation.Annotation;
 import java.util.*;
 
-class NativeDependencyManager implements DependencyManager {
+final class NativeDependencyManager implements DependencyManager {
 
 	private final Map<Class<?>, Object> dependencies = new HashMap<>();
 	private final DIConstructor diConstructor = new DIConstructor();
 	private final Map<Annotation, TriConsumer<Class, Map<Class<?>, Object>, DependencyManager>> annotationStrategies = new HashMap<>();
 
 	NativeDependencyManager() {
-		// annotationStrategies.put(EnforceCreation.class, (aClass, classObjectMap, dependencyManager) -> )
+		// annotationStrategies.put(RequireNew.class, (aClass, classObjectMap, dependencyManager) -> )
 	}
 
 	private <T> T dispatchConstruction(Class<T> type) {
@@ -23,7 +23,7 @@ class NativeDependencyManager implements DependencyManager {
 			copy = new HashMap<>(dependencies);
 		}
 
-		return diConstructor.construct(type, copy, this::addPreConstructedDependencyIfNotContained);
+		return diConstructor.construct(type, copy, this::addAsIfNotContained);
 	}
 
 	@Override
@@ -43,10 +43,39 @@ class NativeDependencyManager implements DependencyManager {
 		}
 	}
 
-	public <T> T remove(Class<T> tClass) {
+	@Override
+	public void clear() {
+		synchronized (dependencies) {
+			dependencies.clear();
+		}
+	}
+
+	@Override
+	public <T> T removeStateDependency(Class<T> tClass) {
 		synchronized (dependencies) {
 			return (T) dependencies.remove(tClass);
 		}
+	}
+
+	@Override
+	public void addAs(final Object object, final Class<?> type) {
+		Keller.parameterNotNull(object, type);
+		if (!type.isAssignableFrom(object.getClass())) {
+			throw new IllegalArgumentException("Provided Class (" + type + ") is not assignable from " + object.getClass());
+		}
+
+		synchronized (dependencies) {
+			dependencies.put(type, object);
+		}
+	}
+
+	@Override
+	public void addAsIfNotContained(final Object object, final Class<?> type) {
+		Keller.parameterNotNull(object, type);
+		if (isSet(type)) {
+			return;
+		}
+		addAs(object, type);
 	}
 
 	@Override
@@ -88,7 +117,7 @@ class NativeDependencyManager implements DependencyManager {
 		//		strategy.accept(type, dependencies, this);
 		//	}
 		//}
-		if (annotations != null && Arrays.stream(annotations).anyMatch(annotation -> annotation instanceof EnforceCreation)) {
+		if (annotations != null && Arrays.stream(annotations).anyMatch(annotation -> annotation instanceof RequireNew)) {
 			return dispatchConstruction(type);
 		} else {
 			return get(type);
