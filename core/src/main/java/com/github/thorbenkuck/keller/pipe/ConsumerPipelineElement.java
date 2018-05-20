@@ -33,6 +33,11 @@ public class ConsumerPipelineElement<T> implements APIPipelineElement<T> {
 		return obj != null && obj.getClass().equals(ConsumerPipelineElement.class) && consumer.equals(((ConsumerPipelineElement) obj).getConsumer());
 	}
 
+	@Override
+	public String toString() {
+		return consumer.toString();
+	}
+
 	boolean test(final T t) {
 		for (final Predicate<T> predicate : predicates) {
 			if (! predicate.test(t)) {

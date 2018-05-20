@@ -33,6 +33,11 @@ public class FunctionPipelineElement<T> implements APIPipelineElement<T> {
 		predicates.add(predicate);
 	}
 
+	@Override
+	public String toString() {
+		return function.toString();
+	}
+
 	boolean test(T t) {
 		for (final Predicate<T> predicate : predicates) {
 			if (! predicate.test(t)) {

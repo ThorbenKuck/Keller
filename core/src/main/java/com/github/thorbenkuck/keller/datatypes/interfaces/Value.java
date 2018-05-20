@@ -1,6 +1,11 @@
 package com.github.thorbenkuck.keller.datatypes.interfaces;
 
-public interface Value<T> {
+import com.github.thorbenkuck.keller.utility.Keller;
+
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+public interface Value<T> extends Updatable<T>, Readable<T> {
 
 	static <T> Value<T> of(T t) {
 		return new NativeValue<>(t);
@@ -14,12 +19,36 @@ public interface Value<T> {
 
 	static <T> Value<T> emptySynchronized() { return new NativeSynchronizedValue<>(null); }
 
-	T get();
+	static <T> Readable<T> readOnly(T t) {
+		return of(t);
+	}
 
-	void set(T t);
+	static <T> Readable<T> readOnlySynchronized(T t) {
+		return synchronize(t);
+	}
 
-	void clear();
+	default void requireNotEmpty() {
+		if(isEmpty()) {
+			throw new IllegalStateException("The Value " + this + " is required to not be empty!");
+		}
+	}
 
-	boolean isEmpty();
+	default void set(Supplier<T> supplier) {
+		Keller.parameterNotNull(supplier);
+		set(supplier.get());
+	}
 
+	default void ifEmpty(Supplier<T> supplier) {
+		Keller.parameterNotNull(supplier);
+		if(isEmpty()) {
+			set(supplier);
+		}
+	}
+
+	default void ifNotEmpty(Consumer<T> consumer) {
+		Keller.parameterNotNull(consumer);
+		if(!isEmpty()) {
+			consumer.accept(get());
+		}
+	}
 }

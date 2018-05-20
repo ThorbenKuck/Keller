@@ -2,11 +2,12 @@ package com.github.thorbenkuck.keller.pipe;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Closable;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Lockable;
+import com.github.thorbenkuck.keller.datatypes.interfaces.PrettyPrint;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public interface Pipeline<T> extends Function<T, T>, Closable, Lockable {
+public interface Pipeline<T> extends Function<T, T>, Closable, Lockable, PrettyPrint {
 
 	static <T> Pipeline<T> unifiedCreation() {
 		return new NativePipeline<>();

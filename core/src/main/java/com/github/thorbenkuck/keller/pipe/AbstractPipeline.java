@@ -3,9 +3,12 @@ package com.github.thorbenkuck.keller.pipe;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.observers.ObservableValue;
 
+import java.io.PrintStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -118,6 +121,24 @@ public abstract class AbstractPipeline<T, C extends Collection<PipelineElement<T
 		synchronized (core) {
 			return core.contains(new ConsumerPipelineElement<>(pipelineService));
 		}
+	}
+
+	@Override
+	public String toReadable() {
+		final Queue<PipelineElement<T>> copy;
+		synchronized (core) {
+			copy = new LinkedList<>(core);
+		}
+
+		final StringBuilder builder = new StringBuilder();
+		while(copy.peek() != null) {
+			builder.append(copy.poll());
+			if(copy.peek() != null) {
+				builder.append(" => ");
+			}
+		}
+
+		return builder.toString();
 	}
 
 	protected PipelineCondition<T> createPipelineCondition(PipelineElement<T> pipelineElement) {

@@ -1,5 +1,7 @@
 package com.github.thorbenkuck.keller.utility;
 
+import com.github.thorbenkuck.keller.collection.MemoryCacheUnit;
+
 import java.util.*;
 
 public final class Keller {
@@ -7,9 +9,39 @@ public final class Keller {
 	private static final Set<Class<?>> PRIMITIVE_SETS = new HashSet<>();
 
 	public static <T, V> Map<T, V> merge(Map<T, V> one, Map<T, V> two) {
-		final Map<T, V> result = new HashMap<>();
-		result.putAll(one);
+		final Map<T, V> result = new HashMap<>(one);
 		result.putAll(two);
+
+		return result;
+	}
+
+	public static <T> List<T> merge(List<T> one, List<T> two) {
+		final List<T> result = new ArrayList<>(one);
+		result.addAll(two);
+
+		return result;
+	}
+
+	public static <T> Set<T> merge(Set<T> one, Set<T> two) {
+		final Set<T> result = new HashSet<>(one);
+		result.addAll(two);
+
+		return result;
+	}
+
+	public static <T> Collection<T> merge(Collection<T> one, Collection<T> two) {
+		final Collection<T> result = new LinkedList<>(one);
+		result.addAll(two);
+
+		return result;
+	}
+
+	public static <T> MemoryCacheUnit<T> merge(MemoryCacheUnit<T> one, MemoryCacheUnit<T> two) {
+		final MemoryCacheUnit<T> result = MemoryCacheUnit.queue();
+		result.addAll(one.duplicateMemory());
+		result.addAll(two.duplicateMemory());
+
+		result.resetCache();
 
 		return result;
 	}
