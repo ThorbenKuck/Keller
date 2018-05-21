@@ -2,10 +2,7 @@ package com.github.thorbenkuck.keller;
 
 import com.github.thorbenkuck.keller.di.annotations.*;
 import com.github.thorbenkuck.keller.state.*;
-import com.github.thorbenkuck.keller.state.annotations.NextState;
-import com.github.thorbenkuck.keller.state.annotations.StateAction;
-import com.github.thorbenkuck.keller.state.annotations.StateTransitionFactory;
-import com.github.thorbenkuck.keller.state.annotations.TearDown;
+import com.github.thorbenkuck.keller.state.annotations.*;
 import com.github.thorbenkuck.keller.state.transitions.StateTransition;
 import org.junit.Test;
 
@@ -18,6 +15,7 @@ public class StateTest {
 		StateMachine stateMachine = StateMachine.create();
 		stateMachine.addStateDependency(new SecondDependency());
 		stateMachine.addStateDependency(new Counter());
+		stateMachine.setStateContext(new StateContext());
 		stateMachine.start(new FirstState());
 	}
 
@@ -44,16 +42,30 @@ public class StateTest {
 		}
 	}
 
-	private class FirstState {
+	private interface State {}
 
-		@StateAction
-		public void action(SecondDependency secondDependency) {
-			System.out.println("In first state ..");
+	private class StateContext {
+		@InjectState
+		public void setState(State state) {
+			System.out.println("Oh boy! I received: " + state);
 		}
 
 		@StateTransitionFactory
 		public StateTransition construct() {
 			return StateTransition.openAsTimer(2, TimeUnit.SECONDS);
+		}
+
+		@TearDown
+		public void done() {
+			System.out.println("oh... the time with you was so short ..");
+		}
+	}
+
+	private class FirstState implements State {
+
+		@StateAction
+		public void action(SecondDependency secondDependency) {
+			System.out.println("In first state ..");
 		}
 
 		@NextState
@@ -67,7 +79,7 @@ public class StateTest {
 		}
 	}
 
-	private class CountingState {
+	private class CountingState implements State {
 
 		private Counter counter;
 
@@ -86,17 +98,18 @@ public class StateTest {
 				return this;
 			}
 		}
+
+		@StateTransitionFactory
+		public StateTransition trans() {
+			return StateTransition.dead();
+		}
 	}
 
-	private class SecondState {
+	private class SecondState implements State {
+
 		@StateAction
 		public void action(FirstDependency dependency) {
 			System.out.println("In Second State " + dependency.count);
-		}
-
-		@StateTransitionFactory
-		public CustomStateTransition transition() {
-			return new CustomStateTransition();
 		}
 
 		@NextState
@@ -108,6 +121,11 @@ public class StateTest {
 	private class CustomStateTransition implements StateTransition {
 
 		final StateTransition base = StateTransition.dead();
+
+		@Override
+		public Object getFollowState() {
+			return base.getFollowState();
+		}
 
 		@Override
 		public void finish() {

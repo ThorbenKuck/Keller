@@ -5,9 +5,16 @@ import com.github.thorbenkuck.keller.sync.Synchronize;
 final class NativeFixedStateTransition implements StateTransition {
 
 	private final Synchronize synchronize;
+	private final Object followingState;
 
-	public NativeFixedStateTransition(Synchronize synchronize) {
+	public NativeFixedStateTransition(Synchronize synchronize, Object followingState) {
 		this.synchronize = synchronize;
+		this.followingState = followingState;
+	}
+
+	@Override
+	public Object getFollowState() {
+		return followingState;
 	}
 
 	@Override

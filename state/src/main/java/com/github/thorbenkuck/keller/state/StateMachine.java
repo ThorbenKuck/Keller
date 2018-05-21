@@ -2,6 +2,8 @@ package com.github.thorbenkuck.keller.state;
 
 import com.github.thorbenkuck.keller.di.DependencyManager;
 
+import java.util.function.Consumer;
+
 /**
  * The StateMachine allows for a sequential execution of different States.
  *
@@ -16,9 +18,17 @@ public interface StateMachine {
 		return new NativeStateMachine();
 	}
 
+	boolean isRunning();
+
+	void setStateContext(Object object);
+
 	void stop();
 
 	void start(Object object);
+
+	void parallel(Object object);
+
+	void addFinishedCallback(Consumer<StateMachine> callback);
 
 	void addStateDependency(Object object);
 

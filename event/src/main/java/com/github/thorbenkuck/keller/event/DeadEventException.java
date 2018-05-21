@@ -1,6 +1,6 @@
 package com.github.thorbenkuck.keller.event;
 
-public class DeadEventException extends RuntimeException {
+public final class DeadEventException extends RuntimeException {
 
 	DeadEventException() {
 	}

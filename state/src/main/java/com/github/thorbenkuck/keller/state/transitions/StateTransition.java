@@ -7,16 +7,24 @@ import java.util.concurrent.TimeUnit;
 
 public interface StateTransition {
 
-	static StateTransition open() {
-		return new NativeStateTransition();
-	}
-
 	static StateTransition dead() {
 		return new EmptyStateTransition();
 	}
 
-	static StateTransition hook(Synchronize synchronize) {
+	static StateTransition open() {
 		return new NativeStateTransition();
+	}
+
+	static StateTransition openFor(Object followingState) {
+		return new NativeStateTransition(followingState);
+	}
+
+	static StateTransition hook(Synchronize synchronize) {
+		return new NativeFixedStateTransition(synchronize, null);
+	}
+
+	static StateTransition hookFor(Synchronize synchronize, Object followingState) {
+		return new NativeFixedStateTransition(synchronize, followingState);
 	}
 
 	static StateTransition openAsTimer(long timeout, TimeUnit timeUnit) {
@@ -26,6 +34,8 @@ public interface StateTransition {
 	static StateTransition openAsTimer(long timeout, TimeUnit timeUnit, ExecutorService executorService) {
 		return new SleepingStateTransition(timeout, timeUnit, executorService);
 	}
+
+	default Object getFollowState() {return null;}
 
 	void finish();
 

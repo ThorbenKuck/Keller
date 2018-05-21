@@ -3,9 +3,21 @@ package com.github.thorbenkuck.keller.state.transitions;
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.sync.Synchronize;
 
-public class NativeStateTransition implements StateTransition {
+class NativeStateTransition implements StateTransition {
 
 	private final Value<Synchronize> synchronizeValue = Value.emptySynchronized();
+	private final Value<Object> followStateValue = Value.empty();
+
+	NativeStateTransition() {}
+
+	NativeStateTransition(Object followState) {
+		followStateValue.set(followState);
+	}
+
+	@Override
+	public Object getFollowState() {
+		return followStateValue.get();
+	}
 
 	@Override
 	public void finish() {
