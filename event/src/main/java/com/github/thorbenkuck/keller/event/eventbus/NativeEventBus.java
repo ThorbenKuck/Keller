@@ -1,4 +1,4 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
 import com.github.thorbenkuck.keller.datatypes.interfaces.Value;
 import com.github.thorbenkuck.keller.utility.Keller;

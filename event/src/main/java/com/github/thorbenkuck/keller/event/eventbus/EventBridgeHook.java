@@ -1,15 +1,15 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-final class EventBridgeListener implements EventBridge {
+final class EventBridgeHook implements EventBridge {
 
 	private final Object object;
 	private final Method method;
 	private final Class<?> parameterType;
 
-	EventBridgeListener(final Object object, final Method method) {
+	EventBridgeHook(final Object object, final Method method) {
 		if(method.getParameterCount() != 1) {
 			throw new IllegalArgumentException();
 		}
@@ -22,10 +22,11 @@ final class EventBridgeListener implements EventBridge {
 	public Object trigger(final Object event) {
 		boolean access = method.isAccessible();
 		method.setAccessible(true);
+		Object result = null;
 		try {
 			if (parameterType.equals(event.getClass())) {
 				try {
-					method.invoke(object, event);
+					result = method.invoke(object, event);
 				} catch (final IllegalAccessException | InvocationTargetException e) {
 					e.printStackTrace();
 				}
@@ -34,7 +35,7 @@ final class EventBridgeListener implements EventBridge {
 			method.setAccessible(access);
 		}
 
-		return null;
+		return result;
 	}
 
 	@Override
@@ -57,7 +58,7 @@ final class EventBridgeListener implements EventBridge {
 		if (this == o) return true;
 		if (o == null || getClass() != o.getClass()) return false;
 
-		final EventBridgeListener listening = (EventBridgeListener) o;
+		final EventBridgeHook listening = (EventBridgeHook) o;
 
 		return object.equals(listening.object) && method.equals(listening.method) && parameterType.equals(listening.parameterType);
 	}

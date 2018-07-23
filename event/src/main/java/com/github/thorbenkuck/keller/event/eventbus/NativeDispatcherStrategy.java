@@ -1,5 +1,6 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
+import com.github.thorbenkuck.keller.event.eventbus.exceptions.DeadEventException;
 import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.util.ArrayList;
@@ -7,24 +8,22 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-final class NativeParallelDispatcherStrategy implements DispatcherStrategy {
+final class NativeDispatcherStrategy implements DispatcherStrategy {
 
 	private final EventBus eventBus;
 
-	NativeParallelDispatcherStrategy(final EventBus eventBus) {
+	NativeDispatcherStrategy(final EventBus eventBus) {
 		this.eventBus = eventBus;
 	}
 
 	private void dispatch(final List<EventBridge> eventBridgeList, final Object event) {
 		final List<Object> newEvents = new ArrayList<>();
-		eventBridgeList
-				.parallelStream()
-				.forEach(listening -> {
-					final Object result = listening.trigger(event);
-					if(result != null) {
-						newEvents.add(result);
-					}
-				});
+		eventBridgeList.forEach(listening -> {
+			Object result = listening.trigger(event);
+			if(result != null) {
+				newEvents.add(result);
+			}
+		});
 
 		newEvents.forEach(eventBus::post);
 	}

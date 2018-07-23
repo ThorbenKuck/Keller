@@ -1,5 +1,7 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
+import com.github.thorbenkuck.keller.event.eventbus.annotations.Hook;
+import com.github.thorbenkuck.keller.event.eventbus.annotations.Listen;
 import com.github.thorbenkuck.keller.utility.Keller;
 
 import java.lang.reflect.Method;

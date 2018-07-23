@@ -1,4 +1,4 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
@@ -11,16 +11,16 @@ public interface DispatcherStrategy {
 		eventBus.setDispatcherStrategy(dispatcherStrategy);
 	}
 
-	static void parallel(final EventBus eventBus) {
+	static void applyParallel(final EventBus eventBus) {
 		final DispatcherStrategy dispatcherStrategy = new NativeParallelDispatcherStrategy(eventBus);
 		eventBus.setDispatcherStrategy(dispatcherStrategy);
 	}
 
-	static void asynchronous(final EventBus eventBus) {
-		asynchronous(eventBus, Executors.newCachedThreadPool());
+	static void applyAsynchronous(final EventBus eventBus) {
+		applyAsynchronous(eventBus, Executors.newCachedThreadPool());
 	}
 
-	static void asynchronous(final EventBus eventBus, final ExecutorService threadPool) {
+	static void applyAsynchronous(final EventBus eventBus, final ExecutorService threadPool) {
 		final DispatcherStrategy dispatcherStrategy = new NativeAsynchronousDispatcherStrategy(eventBus, threadPool);
 		eventBus.setDispatcherStrategy(dispatcherStrategy);
 	}

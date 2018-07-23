@@ -1,4 +1,4 @@
-package com.github.thorbenkuck.keller.event;
+package com.github.thorbenkuck.keller.event.eventbus;
 
 public interface EventBus {
 
