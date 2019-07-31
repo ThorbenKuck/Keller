@@ -7,10 +7,10 @@ import java.util.concurrent.Semaphore;
 public abstract class AbstractSemaphoreSynchronize implements Synchronize {
 
 	protected final Semaphore mutex;
+	protected static final int INITIAL_PERMITS = 0;
 
 	protected AbstractSemaphoreSynchronize() {
-		this.mutex = new Semaphore(1);
-		reset();
+		this.mutex = new Semaphore(INITIAL_PERMITS);
 	}
 
 	@Asynchronous
@@ -29,14 +29,8 @@ public abstract class AbstractSemaphoreSynchronize implements Synchronize {
 	@Asynchronous
 	@Override
 	public void reset() {
-		while(mutex.availablePermits() != 1) {
+		while(mutex.availablePermits() != INITIAL_PERMITS) {
 			mutex.release();
-		}
-
-		try {
-			mutex.acquire();
-		} catch (InterruptedException e) {
-			throw new IllegalStateException(e);
 		}
 	}
 }

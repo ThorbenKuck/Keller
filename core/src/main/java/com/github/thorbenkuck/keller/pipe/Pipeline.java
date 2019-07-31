@@ -9,7 +9,12 @@ import java.util.function.Function;
 
 public interface Pipeline<T> extends Function<T, T>, Closable, Lockable, PrettyPrint {
 
+	@Deprecated
 	static <T> Pipeline<T> unifiedCreation() {
+		return new NativePipeline<>();
+	}
+
+	static <T> Pipeline<T> create() {
 		return new NativePipeline<>();
 	}
 
